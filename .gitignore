@@ -1,0 +1,43 @@
+# Environment files
+.env
+**/.env
+**/.env.*
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+build/
+**/dist/
+**/build/
+
+# Logs
+logs/
+*.log
+**/logs/
+**/*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Database
+database/backups/
+database/data
+
+# Docker
+database/.env
+database/.env.*
+database/docker-compose.override.yml
+
+# Misc
+*.swp
+*.swo
+*.tmp
+*.bak

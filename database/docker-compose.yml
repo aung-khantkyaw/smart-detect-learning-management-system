@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sdlms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sdlms
+      POSTGRES_PASSWORD: sdlms_password
+      POSTGRES_DB: sdlms
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sdlms -d sdlms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backup:
+    image: prodrigestivill/postgres-backup-local
+    container_name: sdlms-postgres-backup
+    depends_on:
+      - db
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: sdlms
+      POSTGRES_USER: sdlms
+      POSTGRES_PASSWORD: sdlms_password
+      SCHEDULE: "0 3 * * *" # daily at 03:00 UTC
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+      BACKUP_DIR: /backups
+      TZ: UTC
+      POSTGRES_EXTRA_OPTS: "--clean --if-exists"
+    volumes:
+      - ./backups:/backups
+    # Uncomment to run a one-off backup immediately after up
+    # command: ["sh", "-c", "sleep 10 && /backup.sh"]
+
+volumes: {}
