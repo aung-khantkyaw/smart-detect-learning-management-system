@@ -78,11 +78,9 @@ smart-detect-learning-management-system/
 3. Commit your changes
 4. Push to your fork and submit a pull request
 
-## License
-[MIT](LICENSE)
-
 ## Authors
 - [Aung Khant Kyaw](https://github.com/aung-khantkyaw)
+- [Aung Kaung Sett](https://github.com/Kaungsett45)
 
 ---
 For more details, see the `backend/README.md`, `client/README.md`, and `database/README.md` files.
