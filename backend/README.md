@@ -169,3 +169,16 @@ Base URL: /api
 - Admin: manage users, courses, academics, offerings, enrollments, chat rooms, announcements
 - Teacher: manage materials, quizzes, assignments in their offerings; view enrollments
 - Student: view materials for enrolled offerings, submit quizzes/assignments, chat and download
+
+
+
+
+
+<!-- 
+##install modules for backend
+
+npm install express cors pg dotenv
+npm install --save-dev typescript @types/node @types/express ts-node
+npm install --save-dev @types/cors
+npm install --save-dev @types/pg
+ -->

@@ -1,9 +1,19 @@
-import React from 'react'
+
+import React ,{useState ,useEffect} from 'react'
+
 import { NavLink } from "react-router-dom";
 
 import { Link, Outlet ,useLocation } from "react-router-dom";
 export default function Home() {
   const location = useLocation();
+
+    const [courses, setCourses] = useState([]);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/courses")
+      .then(res => res.json())
+      .then(data => setCourses(data));
+  }, []);
 
   return (
     <>
@@ -14,9 +24,9 @@ export default function Home() {
 
            <div className="">
        
-<aside id="cta-button-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0" aria-label="Sidebar">
-   <div class="h-full px-3 py-4 overflow-y-auto  border-r-4 ">
-      <ul class="space-y-2 font-medium  ">
+<aside id="cta-button-sidebar" className="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0" aria-label="Sidebar">
+   <div className="h-full px-3 py-4 overflow-y-auto  border-r-4 ">
+      <ul className="space-y-2 font-medium  ">
         <li>
            <div className="flex items-center space-x-3">
   <p className="mb-6 ml-4 text-xl font-bold text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text">
@@ -52,7 +62,9 @@ export default function Home() {
                 </NavLink>
 
 </li>
-<li>
+
+{/* <li>
+
   <a href="#"
      className="flex items-center p-2 transition-colors duration-200 rounded-lg hover:bg-gray-700 group">
   <svg className="w-5 h-5 text-gray-500 transition duration-75 shrink-0 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 18">
@@ -61,11 +73,10 @@ export default function Home() {
 
     <span className="flex-1 text-gray-600 transition-colors duration-200 ms-3 whitespace-nowrap group-hover:text-white">
       Chat
-    </span>
-      {/* <span class="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-white bg-blue-100 rounded-full dark:bg-blue-900 dark:text-white">3</span> */}
-         
+    </span        
   </a>
-</li>
+</li> */}
+
 <li>
   <a href="#"
      className="flex items-center p-2 transition-colors duration-200 rounded-lg hover:bg-gray-700 group">
@@ -108,7 +119,7 @@ export default function Home() {
   <a href="#"
      className="flex items-center p-2 transition-colors duration-200 rounded-lg hover:bg-gray-700 group">
   <svg className="w-5 h-5 text-gray-500 transition duration-75 shrink-0 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 16">
-                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 8h11m0 0L8 4m4 4-4 4m4-11h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3"/>
+                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M1 8h11m0 0L8 4m4 4-4 4m4-11h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3"/>
                </svg>
 
     <span className="flex-1 text-gray-600 transition-colors duration-200 ms-3 whitespace-nowrap group-hover:text-white">
@@ -122,7 +133,7 @@ export default function Home() {
    </div>
 </aside>
 
-      <div class="p-4 sm:ml-64">
+      <div className="p-4 sm:ml-64">
                   <Outlet/>
       </div>
 </div>
