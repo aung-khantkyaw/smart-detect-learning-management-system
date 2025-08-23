@@ -1,11 +1,11 @@
+
 import React ,{useState ,useEffect} from 'react'
+
 import { NavLink } from "react-router-dom";
 
 import { Link, Outlet ,useLocation } from "react-router-dom";
 export default function Home() {
   const location = useLocation();
-
-
 
     const [courses, setCourses] = useState([]);
 
@@ -14,7 +14,6 @@ export default function Home() {
       .then(res => res.json())
       .then(data => setCourses(data));
   }, []);
-
 
   return (
     <>
@@ -63,7 +62,9 @@ export default function Home() {
                 </NavLink>
 
 </li>
+
 {/* <li>
+
   <a href="#"
      className="flex items-center p-2 transition-colors duration-200 rounded-lg hover:bg-gray-700 group">
   <svg className="w-5 h-5 text-gray-500 transition duration-75 shrink-0 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 18">
@@ -72,10 +73,10 @@ export default function Home() {
 
     <span className="flex-1 text-gray-600 transition-colors duration-200 ms-3 whitespace-nowrap group-hover:text-white">
       Chat
-    </span>
-        
+    </span        
   </a>
 </li> */}
+
 <li>
   <NavLink
                   to="/dashboard/profile"

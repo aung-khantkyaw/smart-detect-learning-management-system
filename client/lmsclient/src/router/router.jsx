@@ -9,6 +9,7 @@ import Layout from '../Layout.jsx'
 
 //User
 import CoursePage from '../pages/User/Course/CoursePage.jsx';
+
 import CourseOverview from "../pages/User/Course/CourseDetails.jsx";
 import Overview from "../pages/User/Course/components/Overview.jsx";
 import Materials from "../pages/User/Course/components/Materials.jsx";
@@ -29,6 +30,7 @@ import TeacherCoursePage from '../pages/Teacher/Course/Coursepage.jsx';
 import TeacherCourseList from '../pages/Teacher/Course/CourseList.jsx';
 import TOverview from '../pages/Teacher/Course/components/Overview.jsx';
 import TMaterials from '../pages/Teacher/Course/components/Materials.jsx';
+
 const router = createBrowserRouter(
   [
       
