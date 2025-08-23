@@ -52,7 +52,7 @@ export default function CoursePage() {
           />
 
           <Link
-            to="course"
+            to="courselist"
             className="block w-full text-center px-4 py-3 
                       bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 
                       text-white font-medium rounded-lg shadow-md

@@ -7,14 +7,6 @@ export default function Home() {
 
 
 
-    const [courses, setCourses] = useState([]);
-
-  useEffect(() => {
-    fetch("http://localhost:5000/api/courses")
-      .then(res => res.json())
-      .then(data => setCourses(data));
-  }, []);
-
 
   return (
     <>
@@ -37,7 +29,7 @@ export default function Home() {
         </li>
 <li>
   <NavLink
-                  to="/dashboard"
+                  to="/teacherdashboard"
                   end
                   className={({ isActive }) =>
                     [
@@ -133,7 +125,7 @@ export default function Home() {
                   </span>
                 </NavLink>
 </li>
-<NavLink
+{/* <NavLink
   to="/dashboard/chat"
   className={({ isActive }) =>
     [
@@ -151,7 +143,7 @@ export default function Home() {
     <path d="M20 2H4a2 2 0 0 0-2 2v16l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z" />
   </svg>
   <span className="flex-1 ms-3 whitespace-nowrap">Course Chat</span>
-</NavLink>
+</NavLink> */}
 
 {/* Academic Year Chat */}
 <NavLink
