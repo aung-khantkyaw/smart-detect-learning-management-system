@@ -31,6 +31,7 @@ import TeacherCourseList from '../pages/Teacher/Course/CourseList.jsx';
 import TOverview from '../pages/Teacher/Course/components/Overview.jsx';
 import TMaterials from '../pages/Teacher/Course/components/Materials.jsx';
 
+
 const router = createBrowserRouter(
   [
       
@@ -69,6 +70,7 @@ const router = createBrowserRouter(
          { path: "announcements", element: <Announcements /> },
        ],
      },
+
    
   
    ],
