@@ -1,6 +1,3 @@
--- Validation triggers to enforce role constraints and chat scope correctness
-
--- Ensure teacher_id has TEACHER role on course_offerings
 CREATE OR REPLACE FUNCTION ensure_teacher_role()
 RETURNS TRIGGER AS $$
 DECLARE v_role user_role; BEGIN
@@ -16,7 +13,6 @@ CREATE TRIGGER trg_ensure_teacher_role_insert
 BEFORE INSERT OR UPDATE OF teacher_id ON course_offerings
 FOR EACH ROW EXECUTE FUNCTION ensure_teacher_role();
 
--- Ensure enrollment student_id has STUDENT role
 CREATE OR REPLACE FUNCTION ensure_student_role()
 RETURNS TRIGGER AS $$
 DECLARE v_role user_role; BEGIN
@@ -32,7 +28,6 @@ CREATE TRIGGER trg_ensure_student_role_insert
 BEFORE INSERT OR UPDATE OF student_id ON enrollments
 FOR EACH ROW EXECUTE FUNCTION ensure_student_role();
 
--- Ensure chat_members membership aligns with room type
 CREATE OR REPLACE FUNCTION validate_chat_membership()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -43,10 +38,9 @@ DECLARE
   v_user_role user_role;
 BEGIN
   IF NEW.room_type = 'COURSE' THEN
-    -- room must exist
     SELECT TRUE INTO v_exists FROM course_chat_rooms WHERE id = NEW.room_id;
     IF NOT FOUND THEN RAISE EXCEPTION 'Course chat room % does not exist', NEW.room_id; END IF;
-    -- Only teacher or enrolled students
+
     SELECT o.offering_id, o2.teacher_id INTO v_offering_id, v_teacher_id
     FROM course_chat_rooms o
     JOIN course_offerings o2 ON o2.id = o.offering_id
@@ -57,10 +51,10 @@ BEGIN
       IF NOT FOUND THEN RAISE EXCEPTION 'User is not enrolled nor teacher for this course room'; END IF;
     END IF;
   ELSIF NEW.room_type = 'ACADEMIC' THEN
-    -- room must exist
+
     SELECT TRUE INTO v_exists FROM academic_chat_rooms WHERE id = NEW.room_id;
     IF NOT FOUND THEN RAISE EXCEPTION 'Academic chat room % does not exist', NEW.room_id; END IF;
-    -- Only students
+
     SELECT role INTO v_user_role FROM users WHERE id = NEW.user_id;
     IF v_user_role IS DISTINCT FROM 'STUDENT' THEN
       RAISE EXCEPTION 'Only STUDENT users allowed in academic chat rooms';
