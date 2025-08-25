@@ -1,7 +1,10 @@
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import { SocketService } from './services/socketService';
 
 import authRoutes from './routes/authRoutes'
 import userRoutes from './routes/userRoutes';
@@ -11,11 +14,20 @@ import majorRoutes from './routes/majorRoutes';
 import academicYearRoutes from './routes/academicYearRoutes';
 import courseRoutes from './routes/courseRoutes';
 import courseOfferingRoutes from './routes/courseOfferingRoutes';
+import enrollmentRoutes from './routes/enrollmentRoutes';
+import chatRoutes from './routes/chatRoutes';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    methods: ["GET", "POST", "PUT", "DELETE"]
+  }
+});
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -33,10 +45,12 @@ app.use('/api/majors', majorRoutes);
 app.use('/api/academic-years', academicYearRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/course-offerings', courseOfferingRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ status: 'OK', NODE_ENV: process.env.NODE_ENV, timestamp: new Date().toISOString() });
 });
 
 // Database connection test endpoint
@@ -72,7 +86,16 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
-app.listen(PORT, async () => {
+// Initialize Socket.IO service
+const socketService = new SocketService(io);
+
+// Make socketService available globally for controllers
+declare global {
+  var socketService: SocketService;
+}
+global.socketService = socketService;
+
+server.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(`Database test: http://localhost:${PORT}/api/test-db`);

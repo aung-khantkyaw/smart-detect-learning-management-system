@@ -56,3 +56,21 @@ DROP TRIGGER IF EXISTS trg_add_students_to_academic_chat ON academic_chat_rooms;
 CREATE TRIGGER trg_add_students_to_academic_chat
 AFTER INSERT ON academic_chat_rooms
 FOR EACH ROW EXECUTE FUNCTION add_students_to_academic_chat();
+
+CREATE OR REPLACE FUNCTION add_new_student_to_academic_chat()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_room_id UUID;
+BEGIN
+  IF NEW.role = 'STUDENT' AND NEW.academic_year_id IS NOT NULL THEN
+    SELECT id INTO v_room_id FROM academic_chat_rooms WHERE academic_year_id = NEW.academic_year_id;
+    IF v_room_id IS NOT NULL THEN
+      PERFORM add_chat_member('ACADEMIC', v_room_id, NEW.id);
+    END IF;
+  END IF;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_add_new_student_to_academic_chat
+AFTER INSERT ON users
+FOR EACH ROW EXECUTE FUNCTION add_new_student_to_academic_chat();

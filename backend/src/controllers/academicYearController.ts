@@ -17,9 +17,11 @@ export const getAcademicYearById = async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
         const year = await db.select().from(academicYears).where(eq(academicYears.id, id));
+
         if (year.length === 0) {
             return res.status(404).json({ status: 'error', message: 'Academic year not found' });
         }
+
         res.json({ status: 'success', data: year[0] });
     } catch (error) {
         console.error('Error fetching academic year by ID:', error);

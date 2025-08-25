@@ -29,6 +29,18 @@ export const getUserById = async (req: Request, res: Response) => {
   }
 };
 
+export const getAllStudentsByAcademicYear = async (req: Request, res: Response) => {
+  const { academicYearId } = req.params;
+
+  try {
+    const students = await db.select().from(users).where(eq(users.academic_year_id, academicYearId));
+    res.json({ status: 'success', data: students });
+  } catch (error) {
+    console.error('Error fetching students by academic year:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

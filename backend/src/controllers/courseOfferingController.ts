@@ -42,14 +42,8 @@ export const createCourseOffering = async (req: Request, res: Response) => {
 
         const newCourseOffering = await db.insert(courseOfferings).values(courseOffering).returning();
 
-        const newChatRoom = await db.select().from(courseChatRooms).where(eq(courseChatRooms.offeringId, newCourseOffering[0].id));
+        res.status(201).send({ status: 'success', data: newCourseOffering[0] });
 
-        const updateCourseOffering = await db.update(courseOfferings)
-            .set({ roomChatId: newChatRoom[0].id })
-            .where(eq(courseOfferings.id, newCourseOffering[0].id))
-            .returning();
-
-        res.status(201).send({ status: 'success', data: updateCourseOffering[0], chatRoom: newChatRoom[0], message: `${newChatRoom[0]?.name ?? ''} chat room created successfully` });
     } catch (error) {
         console.error('Error creating course offering:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
