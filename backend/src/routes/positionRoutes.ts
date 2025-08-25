@@ -5,6 +5,7 @@ import {
   createPosition,
   updatePosition,
   deletePosition,
+  getTeacherByPositionId,
 } from "../controllers/positionController";
 import { authenticateToken, requireAdmin } from "../middleware/auth";
 
@@ -15,5 +16,7 @@ router.get("/:id", authenticateToken, getPositionById);
 router.post("/", authenticateToken, requireAdmin, createPosition);
 router.put("/:id", authenticateToken, requireAdmin, updatePosition);
 router.delete("/:id", authenticateToken, requireAdmin, deletePosition);
+
+router.get("/:positionId/teachers", authenticateToken, getTeacherByPositionId);
 
 export default router;

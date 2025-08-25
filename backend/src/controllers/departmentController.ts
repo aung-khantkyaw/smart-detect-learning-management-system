@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
-import { departments } from './../db/schema';
+import { courses, departments, users } from './../db/schema';
 import { eq } from "drizzle-orm";
 
 export const getAllDepartments = async (req: Request, res: Response) => {
@@ -14,8 +14,9 @@ export const getAllDepartments = async (req: Request, res: Response) => {
 };
 
 export const getDepartmentById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  
   try {
-    const { id } = req.params;
     const department = await db.select().from(departments).where(eq(departments.id, id));
     
     if (department.length === 0) {
@@ -84,3 +85,37 @@ export const deleteDepartment = async (req: Request, res: Response) => {
     return res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };
+
+export const getCourseByDepartmentId = async (req: Request, res: Response) => {
+  const { departmentId } = req.params;
+  
+  try {
+    const course = await db.select().from(courses).where(eq(courses.departmentId, departmentId));
+
+    if (course.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'No courses found for this department' });
+    }
+
+    res.json({ status: 'success', data: course });
+  } catch (error) {
+    console.error('Error fetching courses by department:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+export const getTeacherByDepartmentId = async (req: Request, res: Response) => {
+  const { departmentId } = req.params;
+  
+  try {
+    const teacher = await db.select().from(users).where(eq(users.departmentId, departmentId));
+
+    if (teacher.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'No teachers found for this department' });
+    }
+
+    res.json({ status: 'success', data: teacher });
+  } catch (error) {
+    console.error('Error fetching teachers by department:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+}

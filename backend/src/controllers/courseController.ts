@@ -14,8 +14,9 @@ export const getAllCourses = async (req: Request, res: Response) => {
 };
 
 export const getCourseById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  
   try {
-    const { id } = req.params;
     const course = await db.select().from(courses).where(eq(courses.id, id));
 
     if (course.length === 0) {
@@ -34,6 +35,7 @@ export const createCourse = async (req: Request, res: Response) => {
 
     try {
         const existingCourse = await db.select().from(courses).where(eq(courses.code, code));
+        
         if (existingCourse.length > 0) {
             return res.status(400).json({ status: 'error', message: 'Course with this code already exists' });
         }
