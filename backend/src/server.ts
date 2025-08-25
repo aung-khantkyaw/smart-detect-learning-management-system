@@ -33,6 +33,8 @@ app.use('/api/majors', majorRoutes);
 app.use('/api/academic-years', academicYearRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/course-offerings', courseOfferingRoutes);
+
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
