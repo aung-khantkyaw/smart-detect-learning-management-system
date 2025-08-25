@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
-import { majors } from './../db/schema';
+import { majors, users } from './../db/schema';
 import { eq } from "drizzle-orm";
 
 export const getAllMajors = async (req: Request, res: Response) => {
@@ -79,5 +79,20 @@ export const deleteMajor = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error deleting major:', error);
         res.status(500).json({ status: 'error', message: 'Failed to delete major' });
+    }
+};
+
+export const getStudentsByMajorId = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+        const students = await db.select()
+            .from(users)
+            .where(eq(users.majorId, id));
+
+        res.json({ status: 'success', data: students });
+    } catch (error) {
+        console.error('Error fetching students by major ID:', error);
+        res.status(500).json({ status: 'error', message: 'Failed to fetch students' });
     }
 };

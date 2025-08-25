@@ -48,120 +48,177 @@ backend/
 
 This document outlines the planned API endpoints and core functions for Admin, Teacher, and Student features.
 
-Base URL: /api
+## Middleware Types
 
-## Auth
+- `authenticateToken` - Validates JWT token
+- `requireAdmin` - Requires admin role
+- `requireAdminOrSelf` - Requires admin role or user accessing own data
+- `requireAdminOrTeacher` - Requires admin or teacher role
 
-- ✅ POST /api/auth/register — Register user (admin/teacher/student depending on context)
-- ✅ POST /api/auth/login — Email/username + password
-- ✅ POST /api/auth/logout — Invalidate session/token
-- ✅ DELETE /api/auth/delete - Delete Account by ID
-<!-- - POST /api/auth/refresh — Refresh access token
-- POST /api/auth/verify-email — Verify email token -->
-- POST /api/auth/forgot-password — Request reset
-- POST /api/auth/reset-password — Perform reset
-<!-- - POST /api/auth/mfa/setup — Setup MFA (teacher/admin)
-- POST /api/auth/mfa/verify — Verify MFA code -->
+## Authentication Routes (`/auth`)
 
-## Users (Admin)
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/test-auth` | `main` | None | Test authentication endpoint | ✅
+| POST | `/register` | `registrationUser` | `authenticateToken`, `requireAdmin` | Register new user (admin only) | ✅
+| POST | `/login` | `loginUser` | None | User login |✅
+| POST | `/logout` | `logoutUser` | `authenticateToken` | User logout |✅
+| DELETE | `/delete` | `deleteUser` | `authenticateToken`, `requireAdminOrSelf` | Delete user account |✅
 
-- GET /api/users — List users (filter by role)
-- POST /api/users — Create user (role: TEACHER/STUDENT)
-- GET /api/users/:id — Get user
-- PUT /api/users/:id — Update user
-- DELETE /api/users/:id — Delete user
-- PATCH /api/users/:id/activate — Activate/deactivate
+## User Routes (`/users`)
 
-## Courses
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `getAllUsers` | `authenticateToken` | Get all users |✅
+| GET | `/:id` | `getUserById` | `authenticateToken` | Get user by ID |✅
+| PUT | `/:id` | `updateUser` | `authenticateToken`, `requireAdminOrSelf` | Update user |✅
+| PATCH | `/:id/activate` | `banUser` | `authenticateToken`, `requireAdmin` | Toggle user active status |✅
 
-- GET /api/courses — List courses
-- POST /api/courses — Create course (Admin/Teacher)
-- GET /api/courses/:id — Get course
-- PUT /api/courses/:id — Update course
-- DELETE /api/courses/:id — Delete course
 
-## Academic Years (Admin)
+## Academic Year Routes (`/academic-years`)
 
-- GET /api/academics — List academic years
-- POST /api/academics — Create academic year
-- GET /api/academics/:id — Get academic year
-- PUT /api/academics/:id — Update academic year
-- DELETE /api/academics/:id — Delete academic year
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `getAllAcademicYears` | `authenticateToken` | Get all academic years |✅
+| GET | `/:id` | `getAcademicYearById` | `authenticateToken` | Get academic year by ID |✅
+| POST | `/` | `createAcademicYear` | `authenticateToken`, `requireAdmin` | Create academic year |✅
+| PUT | `/:id` | `updateAcademicYear` | `authenticateToken`, `requireAdmin` | Update academic year |✅
+| DELETE | `/:id` | `deleteAcademicYear` | `authenticateToken`, `requireAdmin` | Delete academic year |✅
+| GET | `/:academicYearId/course-offerings` | `getOfferingCoursesByAcademicYearId` | `authenticateToken` | Get course offerings by academic year |❎
+| GET | `/:academicYearId/students` | `getAllStudentsByAcademicYear` | `authenticateToken`, `requireAdminOrTeacher` | Get students by academic year |❎
+| GET | `/:academicYearId/chat-room` | `getAcademicChatRoomByAcademicYearId` | `authenticateToken` | Get chat room by academic year |❎
 
-## Course Offerings (Admin)
+## Course Routes (`/courses`)
 
-- GET /api/offerings — List offerings (course + academic)
-- POST /api/offerings — Create offering (assign teacher)
-- GET /api/offerings/:id — Get offering
-- PUT /api/offerings/:id — Update offering (reassign teacher)
-- DELETE /api/offerings/:id — Delete offering
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `getAllCourses` | `authenticateToken` | Get all courses |✅
+| GET | `/:id` | `getCourseById` | `authenticateToken` | Get course by ID |✅
+| POST | `/` | `createCourse` | `authenticateToken`, `requireAdmin` | Create course |✅
+| PUT | `/:id` | `updateCourse` | `authenticateToken`, `requireAdmin` | Update course |✅
+| DELETE | `/:id` | `deleteCourse` | `authenticateToken`, `requireAdmin` | Delete course |✅
+| GET | `/:courseId/course-offerings` | `getOfferingCoursesByCourseId` | `authenticateToken`, `requireAdmin` | Get course offerings by course |❎
 
-## Enrollments (Admin)
+## Course Offering Routes (`/course-offerings`)
 
-- GET /api/offerings/:id/enrollments — List students
-- POST /api/offerings/:id/enrollments — Enroll student(s)
-- DELETE /api/offerings/:id/enrollments/:studentId — Unenroll
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `getAllCourseOfferings` | `authenticateToken` | Get all course offerings |✅
+| GET | `/:id` | `getCourseOfferingById` | `authenticateToken` | Get course offering by ID |✅
+| POST | `/` | `createCourseOffering` | `authenticateToken`, `requireAdmin` | Create course offering |✅
+| PUT | `/:id` | `updateCourseOffering` | `authenticateToken`, `requireAdmin` | Update course offering |✅
+| DELETE | `/:id` | `deleteCourseOffering` | `authenticateToken`, `requireAdmin` | Delete course offering |✅
 
-## Materials (Teacher)
+## Department Routes (`/departments`)
 
-- GET /api/offerings/:id/materials — List materials
-- POST /api/offerings/:id/materials — Upload/create material
-- GET /api/materials/:materialId — Get material
-- PUT /api/materials/:materialId — Update
-- DELETE /api/materials/:materialId — Delete
-- GET /api/materials/:materialId/download — Download file
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `getAllDepartments` | `authenticateToken` | Get all departments |✅
+| GET | `/:id` | `getDepartmentById` | `authenticateToken` | Get department by ID |✅
+| POST | `/` | `createDepartment` | `authenticateToken`, `requireAdmin` | Create department |✅
+| PUT | `/:id` | `updateDepartment` | `authenticateToken`, `requireAdmin` | Update department |✅
+| DELETE | `/:id` | `deleteDepartment` | `authenticateToken`, `requireAdmin` | Delete department |✅
+| GET | `/:departmentId/courses` | `getCourseByDepartmentId` | `authenticateToken` | Get courses by department |❎❎
+| GET | `/:departmentId/teachers` | `getTeacherByDepartmentId` | `authenticateToken` | Get teachers by department |❎❎
 
-## Announcements
+## Major Routes (`/majors`)
 
-- GET /api/announcements — List announcements (query by scope)
-- POST /api/announcements — Create (Admin/Teacher)
-- GET /api/announcements/:id — Get
-- PUT /api/announcements/:id — Update
-- DELETE /api/announcements/:id — Delete
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `getAllMajors` | `authenticateToken` | Get all majors |✅
+| GET | `/:id` | `getMajorById` | `authenticateToken` | Get major by ID |✅
+| POST | `/` | `createMajor` | `authenticateToken`, `requireAdmin` | Create major |✅
+| PUT | `/:id` | `updateMajor` | `authenticateToken`, `requireAdmin` | Update major |✅
+| DELETE | `/:id` | `deleteMajor` | `authenticateToken`, `requireAdmin` | Delete major |✅
+| GET | `/:id/students` | `getStudentsByMajorId` | `authenticateToken`, `requireAdminOrTeacher` | Get students by major |❎❎
 
-## Chat
+## Position Routes (`/positions`)
 
-- GET /api/chats/rooms?scope=(course|academic)&scopeId=... — List rooms
-- POST /api/chats/rooms — Create room (Admin)
-- GET /api/chats/rooms/:roomId — Get room
-- GET /api/chats/rooms/:roomId/members — List members
-- POST /api/chats/rooms/:roomId/members — Add member (Admin)
-- DELETE /api/chats/rooms/:roomId/members/:userId — Remove member (Admin)
-- GET /api/chats/rooms/:roomId/messages — List messages
-- POST /api/chats/rooms/:roomId/messages — Send text/file message
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `getAllPositions` | `authenticateToken` | Get all positions |✅
+| GET | `/:id` | `getPositionById` | `authenticateToken` | Get position by ID |✅
+| POST | `/` | `createPosition` | `authenticateToken`, `requireAdmin` | Create position |✅
+| PUT | `/:id` | `updatePosition` | `authenticateToken`, `requireAdmin` | Update position |✅
+| DELETE | `/:id` | `deletePosition` | `authenticateToken`, `requireAdmin` | Delete position |✅
+| GET | `/:positionId/teachers` | `getTeacherByPositionId` | `authenticateToken` | Get teachers by position |❎❎
 
-## Quizzes (Teacher/Student)
+## Enrollment Routes (`/enrollments`)
 
-- GET /api/offerings/:id/quizzes — List quizzes
-- POST /api/offerings/:id/quizzes — Create quiz (Teacher)
-- GET /api/quizzes/:quizId — Get quiz
-- PUT /api/quizzes/:quizId — Update quiz (Teacher)
-- DELETE /api/quizzes/:quizId — Delete quiz (Teacher)
-- GET /api/quizzes/:quizId/questions — List questions
-- POST /api/quizzes/:quizId/questions — Add question (Teacher)
-- PUT /api/questions/:questionId — Update question (Teacher)
-- DELETE /api/questions/:questionId — Delete question (Teacher)
-- POST /api/quizzes/:quizId/submissions — Submit quiz (Student)
-- GET /api/quizzes/:quizId/submissions — List submissions (Teacher)
-- GET /api/submissions/:submissionId — Get submission
-- POST /api/submissions/:submissionId/grade — Grade submission (Teacher)
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `getAllEnrollments` | `authenticateToken` | Get all enrollments |✅
+| GET | `/:id` | `getEnrollmentById` | `authenticateToken` | Get enrollment by ID |✅
+| POST | `/` | `createEnrollment` | `authenticateToken`, `requireAdmin` | Create enrollment |✅
+| PUT | `/:id` | `updateEnrollment` | `authenticateToken`, `requireAdmin` | Update enrollment |✅
+| DELETE | `/:id` | `deleteEnrollment` | `authenticateToken`, `requireAdmin` | Delete enrollment |✅
 
-## Assignments (Teacher/Student)
+## Chat Routes (`/chat`)
 
-- GET /api/offerings/:id/assignments — List assignments
-- POST /api/offerings/:id/assignments — Create assignment (Teacher)
-- GET /api/assignments/:assignmentId — Get assignment
-- PUT /api/assignments/:assignmentId — Update assignment (Teacher)
-- DELETE /api/assignments/:assignmentId — Delete assignment (Teacher)
-- POST /api/assignments/:assignmentId/submissions — Submit assignment (Student)
-- GET /api/assignments/:assignmentId/submissions — List submissions (Teacher)
-- GET /api/assignment-submissions/:id — Get submission
-- POST /api/assignment-submissions/:id/grade — Grade submission (Teacher)
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| POST | `/notification` | `sendCourseNotification` | None | Send course notification |❎
+| POST | `/announcement` | `broadcastAnnouncement` | None | Broadcast announcement |❎
 
-## Notifications
+## Chat Room Routes (`/chat-rooms`)
 
-- GET /api/notifications — List my notifications
-- POST /api/notifications/:id/read — Mark as read
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | Inline function | `authenticateToken` | Chat room test endpoint |❎
+| GET | `/academic` | `getAllAcademicChatRooms` | `authenticateToken` | Get all academic chat rooms |❎
+| GET | `/course` | `getAllCourseChatRooms` | `authenticateToken` | Get all course chat rooms |❎
+| GET | `/academic/:id` | `getAcademicChatRoomById` | `authenticateToken` | Get academic chat room by ID |❎
+| GET | `/course/:id` | `getCourseChatRoomById` | `authenticateToken` | Get course chat room by ID |❎
+
+## Student Routes (`/students`)
+
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `getAllStudents` | `authenticateToken`, `requireAdmin` | Get all students |✅
+| GET | `/:studentId/enrollments` | `getEnrollmentByStudentId` | `authenticateToken`, `requireAdminOrTeacher` | Get enrollments by student |❎
+
+## Teacher Routes (`/teachers`)
+
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `getAllTeachers` | `authenticateToken`, `requireAdmin` | Get all teachers |✅
+| GET | `/:teacherId/course-offerings` | `getOfferingCoursesByTeacherId` | `authenticateToken`, `requireAdminOrTeacher` | Get course offerings by teacher |❎
+
+## Access Control Summary
+
+### Public Endpoints (No Authentication)
+
+- `GET /auth/test-auth`
+- `POST /auth/login`
+- `POST /chat/notification`
+- `POST /chat/announcement`
+
+### Authenticated User Endpoints
+
+- All GET endpoints for resources
+- User profile updates (own data only)
+
+### Admin Only Endpoints
+
+- User registration
+- All CREATE, UPDATE, DELETE operations for:
+  - Academic years
+  - Courses
+  - Course offerings
+  - Departments
+  - Majors
+  - Positions
+  - Enrollments
+- User banning
+
+### Admin or Teacher Endpoints
+
+- Get students by academic year
+
+### Admin or Self Endpoints
+
+- Update user profile
+- Delete user account
 
 ## Admin vs Teacher vs Student capabilities
 

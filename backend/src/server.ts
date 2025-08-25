@@ -16,6 +16,9 @@ import courseRoutes from './routes/courseRoutes';
 import courseOfferingRoutes from './routes/courseOfferingRoutes';
 import enrollmentRoutes from './routes/enrollmentRoutes';
 import chatRoutes from './routes/chatRoutes';
+import chatRoomRoutes from './routes/chatRoomRoutes';
+import studentRoutes from './routes/studentRoutes';
+import teacherRoutes from './routes/teacherRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +42,8 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/teachers', teacherRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/positions', positionRoutes);
 app.use('/api/majors', majorRoutes);
@@ -47,6 +52,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/course-offerings', courseOfferingRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/chat-rooms', chatRoomRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
