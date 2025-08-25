@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 
 export const sendCourseNotification = async (req: Request, res: Response) => {
-  try {
-    const { courseId, message, type } = req.body;
-    
+  const { courseId, message, type } = req.body;
+
+  try {  
     // Emit notification to all users in the course
     global.socketService.emitToCourse(courseId, 'new-notification', {
       id: Date.now(),
@@ -19,9 +19,9 @@ export const sendCourseNotification = async (req: Request, res: Response) => {
 };
 
 export const broadcastAnnouncement = async (req: Request, res: Response) => {
-  try {
-    const { message, type } = req.body;
-    
+  const { message, type } = req.body;
+  
+  try {  
     // Broadcast to all connected users
     global.socketService.emitToAll('announcement', {
       id: Date.now(),

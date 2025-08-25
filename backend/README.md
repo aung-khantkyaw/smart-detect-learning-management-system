@@ -22,17 +22,15 @@
 backend/
 	src/
 		controllers/
-		routes/
-		models/         # Drizzle schemas
 		db/             # Drizzle config, migrations
-		services/
 		middlewares/
-		sockets/        # Socket.IO handlers
+		routes/
+		services/
 		utils/
-		config/
 		app.ts
 		server.ts
 	tests/
+	uploads/
 	.env
 	package.json
 	README.md
@@ -54,9 +52,10 @@ Base URL: /api
 
 ## Auth
 
-<!-- - POST /api/auth/register — Register user (admin/teacher/student depending on context) -->
-- POST /api/auth/login — Email/username + password
-- POST /api/auth/logout — Invalidate session/token
+- ✅ POST /api/auth/register — Register user (admin/teacher/student depending on context)
+- ✅ POST /api/auth/login — Email/username + password
+- ✅ POST /api/auth/logout — Invalidate session/token
+- ✅ DELETE /api/auth/delete - Delete Account by ID
 <!-- - POST /api/auth/refresh — Refresh access token
 - POST /api/auth/verify-email — Verify email token -->
 - POST /api/auth/forgot-password — Request reset

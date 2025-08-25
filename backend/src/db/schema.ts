@@ -49,11 +49,11 @@ export const users = pgTable('users', {
   fullName: text('full_name').notNull(),
   isActive: boolean('is_active').notNull().default(true),
   // Teacher-only fields
-  department_id: uuid('department_id').references(() => departments.id, { onDelete: 'set null' }),
-  position_id: uuid('position_id').references(() => positions.id, { onDelete: 'set null' }),
+  departmentId: uuid('department_id').references(() => departments.id, { onDelete: 'set null' }),
+  positionId: uuid('position_id').references(() => positions.id, { onDelete: 'set null' }),
   // Student-only fields
-  major_id: uuid('major_id').references(() => majors.id, { onDelete: 'set null' }),
-  academic_year_id: uuid('academic_year_id').references(() => academicYears.id, { onDelete: 'set null' }),
+  majorId: uuid('major_id').references(() => majors.id, { onDelete: 'set null' }),
+  academicYearId: uuid('academic_year_id').references(() => academicYears.id, { onDelete: 'set null' }),
   studentNumber: text('student_number').unique(),
   // Auth system fields
   lastLoginAt: timestamp('last_login_at'),
@@ -264,7 +264,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   enrollments: many(enrollments, { relationName: "offeringEnrollments" }),
   courseOfferings: many(courseOfferings),
   academicYear: one(academicYears, {
-    fields: [users.academic_year_id],
+    fields: [users.academicYearId],
     references: [academicYears.id]
   }),
   chatMessages: many(chatMessages, { relationName: "userChatMessages" }),
