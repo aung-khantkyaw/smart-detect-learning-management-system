@@ -9,11 +9,11 @@ export default function Home() {
 
     const [courses, setCourses] = useState([]);
 
-  useEffect(() => {
-    fetch("http://localhost:5000/api/courses")
-      .then(res => res.json())
-      .then(data => setCourses(data));
-  }, []);
+  // useEffect(() => {
+  //   fetch("http://localhost:3000/api/courses")
+  //     .then(res => res.json())
+  //     .then(data => setCourses(data));
+  // }, []);
 
   return (
     <>
