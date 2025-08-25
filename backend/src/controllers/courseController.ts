@@ -88,3 +88,20 @@ export const deleteCourse = async (req: Request, res: Response) => {
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
 };
+
+export const getOfferingCoursesByCourseId = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const offeringCourses = await db.select().from(courses).where(eq(courses.id, id));
+
+    if (offeringCourses.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Course not found' });
+    }
+
+    res.json({ status: 'success', data: offeringCourses });
+  } catch (error) {
+    console.error('Error fetching offering courses:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};

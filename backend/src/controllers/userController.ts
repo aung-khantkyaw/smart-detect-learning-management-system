@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
-import { users } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { courseOfferings, enrollments, users } from '../db/schema';
+import { and, eq } from 'drizzle-orm';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -26,18 +26,6 @@ export const getUserById = async (req: Request, res: Response) => {
     res.json({ status: 'success', data: user[0] });
   } catch (error) {
     console.error('Error fetching user:', error);
-    res.status(500).json({ status: 'error', message: 'Internal server error' });
-  }
-};
-
-export const getAllStudentsByAcademicYear = async (req: Request, res: Response) => {
-  const { academicYearId } = req.params;
-
-  try {
-    const students = await db.select().from(users).where(eq(users.academic_year_id, academicYearId));
-    res.json({ status: 'success', data: students });
-  } catch (error) {
-    console.error('Error fetching students by academic year:', error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };
@@ -93,6 +81,54 @@ export const banUser = async (req: Request, res: Response) => {
     res.json({ status: 'success', message: 'User banned successfully', data: banUser });
   } catch (error) {
     console.error('Error banning user:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+export const getAllStudents = async (req: Request, res: Response) => {
+  try {
+    const students = await db.select().from(users).where(eq(users.role, 'STUDENT'));
+    res.json({ status: 'success', data: students });
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+}
+
+export const getEnrollmentByStudentId = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const enrollment = await db.select().from(enrollments).where(and(eq(enrollments.studentId, id), eq(users.role, 'STUDENT')));
+  } catch (error) {
+    console.error('Error fetching enrollment by student ID:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+export const getAllTeachers = async (req: Request, res: Response) => {
+  try {
+    const teachers = await db.select().from(users).where(eq(users.role, 'TEACHER'));
+    res.json({ status: 'success', data: teachers });
+  } catch (error) {
+    console.error('Error fetching teachers:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+export const getOfferingCoursesByTeacherId = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const offeringCourses = await db.select().from(courseOfferings).where(eq(courseOfferings.teacherId, id));
+
+    if (offeringCourses.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'No offering courses found for this teacher' });
+    }
+
+    res.json({ status: 'success', data: offeringCourses });
+  } catch (error) {
+    console.error('Error fetching offering courses by teacher ID:', error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };
