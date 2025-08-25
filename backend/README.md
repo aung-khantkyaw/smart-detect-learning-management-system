@@ -7,8 +7,8 @@
 - **ORM:** Drizzle ORM (type-safe, works well with Postgres and TypeScript)
 - **Package Manager:** npm
 - **Real-time:** Socket.IO (for chat, notifications, live updates)
-- **Auth:** JWT (with refresh tokens), bcrypt for password hashing, Passport.js for social logins
-- **Validation:** Zod or Joi for request validation
+- **Auth:** JWT (without refresh tokens), bcrypt for password hashing
+- **Validation:** Zod for request validation
 - **Environment:** dotenv for config, nodemon for dev reloads
 - **Testing:** Vitest or Jest
 - **API Docs:** Swagger (OpenAPI) via swagger-jsdoc or Redocly
@@ -169,16 +169,3 @@ Base URL: /api
 - Admin: manage users, courses, academics, offerings, enrollments, chat rooms, announcements
 - Teacher: manage materials, quizzes, assignments in their offerings; view enrollments
 - Student: view materials for enrolled offerings, submit quizzes/assignments, chat and download
-
-
-
-
-
-<!-- 
-##install modules for backend
-
-npm install express cors pg dotenv
-npm install --save-dev typescript @types/node @types/express ts-node
-npm install --save-dev @types/cors
-npm install --save-dev @types/pg
- -->
