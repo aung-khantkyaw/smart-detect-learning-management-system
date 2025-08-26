@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 
+import { api } from "../../../lib/api";
+
 export default function UserList() {
   const [users, setUsers] = useState([]);
   const [filterRole, setFilterRole] = useState("All");
@@ -17,7 +19,7 @@ export default function UserList() {
     position_id: "",
     major_id: "",
     academic_year_id: "",
-    studentNumber: ""
+    studentNumber: "",
   });
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
@@ -25,50 +27,60 @@ export default function UserList() {
   const [academicYears, setAcademicYears] = useState([]);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-
     // Fetch users and dropdown data
     Promise.all([
-      fetch("http://localhost:3000/api/users", { headers: { Authorization: `Bearer ${token}` } }),
-      fetch("http://localhost:3000/api/departments", { headers: { Authorization: `Bearer ${token}` } }),
-      fetch("http://localhost:3000/api/positions", { headers: { Authorization: `Bearer ${token}` } }),
-      fetch("http://localhost:3000/api/majors", { headers: { Authorization: `Bearer ${token}` } }),
-      fetch("http://localhost:3000/api/academic-years", { headers: { Authorization: `Bearer ${token}` } })
+      api.get("/users"),
+      api.get("/departments"),
+      api.get("/positions"),
+      api.get("/majors"),
+      api.get("/academic-years"),
     ])
-    .then(responses => Promise.all(responses.map(res => res.json())))
-    .then(([userData, deptData, posData, majorData, yearData]) => {
-      // Set users
-      if (Array.isArray(userData)) {
-        setUsers(userData);
-      } else if (Array.isArray(userData.data)) {
-        setUsers(userData.data);
-      }
-      
-      // Set dropdown data
-      if (deptData.status === "success") setDepartments(deptData.data || []);
-      if (posData.status === "success") setPositions(posData.data || []);
-      if (majorData.status === "success") setMajors(majorData.data || []);
-      if (yearData.status === "success") setAcademicYears(yearData.data || []);
-    })
-    .catch((err) => {
-      console.error("Error fetching data:", err);
-      setUsers([]);
-    })
-    .finally(() => setLoading(false));
+      .then(([userData, deptData, posData, majorData, yearData]) => {
+        // Set users
+        if (Array.isArray(userData)) {
+          setUsers(userData);
+        } else if (Array.isArray(userData?.data)) {
+          setUsers(userData.data);
+        } else {
+          setUsers([]);
+        }
+
+        // Set dropdown data
+        setDepartments(
+          Array.isArray(deptData) ? deptData : deptData?.data || deptData || []
+        );
+        setPositions(
+          Array.isArray(posData) ? posData : posData?.data || posData || []
+        );
+        setMajors(
+          Array.isArray(majorData)
+            ? majorData
+            : majorData?.data || majorData || []
+        );
+        setAcademicYears(
+          Array.isArray(yearData) ? yearData : yearData?.data || yearData || []
+        );
+      })
+      .catch((err) => {
+        console.error("Error fetching data:", err);
+        setUsers([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredUsers = users.filter((u) => {
     const matchesRole = filterRole === "All" || u.role === filterRole;
-    const matchesSearch = u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         u.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesRole && matchesSearch;
   });
 
   const getRoleBadge = (role) => {
     const colors = {
       ADMIN: "bg-red-100 text-red-800",
-      TEACHER: "bg-blue-100 text-blue-800", 
-      STUDENT: "bg-green-100 text-green-800"
+      TEACHER: "bg-blue-100 text-blue-800",
+      STUDENT: "bg-green-100 text-green-800",
     };
     return colors[role] || "bg-gray-100 text-gray-800";
   };
@@ -85,22 +97,41 @@ export default function UserList() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">👥 User Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              👥 User Management
+            </h1>
             <p className="text-gray-600">Manage and monitor all system users</p>
           </div>
           <button
             onClick={() => {
               setEditingUser(null);
-              setFormData({ 
-                fullName: "", email: "", password: "", role: "STUDENT",
-                department_id: "", position_id: "", major_id: "", academic_year_id: "", studentNumber: ""
+              setFormData({
+                fullName: "",
+                email: "",
+                password: "",
+                role: "STUDENT",
+                department_id: "",
+                position_id: "",
+                major_id: "",
+                academic_year_id: "",
+                studentNumber: "",
               });
               setShowCreateModal(true);
             }}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <svg className="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <svg
+              className="-ml-1 mr-2 h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
             Create User
           </button>
@@ -109,7 +140,9 @@ export default function UserList() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search Users</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search Users
+              </label>
               <input
                 type="text"
                 placeholder="Search by name or email..."
@@ -119,14 +152,16 @@ export default function UserList() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Role</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Filter by Role
+              </label>
               <select
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="All">All Roles</option>
-             
+
                 <option value="TEACHER">Teacher</option>
                 <option value="STUDENT">Student</option>
               </select>
@@ -140,52 +175,75 @@ export default function UserList() {
               Users ({filteredUsers.length})
             </h3>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.length > 0 ? (
                   filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                    <tr
+                      key={u.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                            {u.fullName?.charAt(0) || 'U'}
+                            {u.fullName?.charAt(0) || "U"}
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{u.fullName}</div>
-                            <div className="text-sm text-gray-500">{u.email}</div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {u.fullName}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {u.email}
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadge(u.role)}`}>
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadge(
+                            u.role
+                          )}`}
+                        >
                           {u.role}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          u.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {u.isActive ? 'Active' : 'Inactive'}
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            u.isActive
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {u.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right space-x-2">
-                        <button 
+                        <button
                           onClick={() => setViewingUser(u)}
                           className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           View
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             setEditingUser(u);
                             setFormData({
@@ -197,7 +255,7 @@ export default function UserList() {
                               position_id: u.position_id || "",
                               major_id: u.major_id || "",
                               academic_year_id: u.academic_year_id || "",
-                              studentNumber: u.studentNumber || ""
+                              studentNumber: u.studentNumber || "",
                             });
                             setShowCreateModal(true);
                           }}
@@ -212,11 +270,25 @@ export default function UserList() {
                   <tr>
                     <td colSpan="4" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                        <svg
+                          className="mx-auto h-12 w-12 text-gray-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
+                          />
                         </svg>
-                        <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
-                        <p className="mt-1 text-sm text-gray-500">Try adjusting your search or filter criteria.</p>
+                        <h3 className="mt-2 text-sm font-medium text-gray-900">
+                          No users found
+                        </h3>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Try adjusting your search or filter criteria.
+                        </p>
                       </div>
                     </td>
                   </tr>
@@ -232,19 +304,31 @@ export default function UserList() {
             <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
               {/* Header */}
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8 text-white relative">
-                <button 
+                <button
                   onClick={() => setViewingUser(null)}
                   className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
                 <div className="text-center">
                   <div className="h-20 w-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-2xl font-bold mx-auto mb-3">
-                    {viewingUser.fullName?.charAt(0) || 'U'}
+                    {viewingUser.fullName?.charAt(0) || "U"}
                   </div>
-                  <h3 className="text-xl font-semibold">{viewingUser.fullName}</h3>
+                  <h3 className="text-xl font-semibold">
+                    {viewingUser.fullName}
+                  </h3>
                   <p className="text-white/80 text-sm">{viewingUser.email}</p>
                 </div>
               </div>
@@ -252,13 +336,21 @@ export default function UserList() {
               {/* Content */}
               <div className="p-6">
                 <div className="flex justify-center gap-4 mb-6">
-                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${getRoleBadge(viewingUser.role)}`}>
+                  <span
+                    className={`px-3 py-1 text-sm font-medium rounded-full ${getRoleBadge(
+                      viewingUser.role
+                    )}`}
+                  >
                     {viewingUser.role}
                   </span>
-                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                    viewingUser.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {viewingUser.isActive ? 'Active' : 'Inactive'}
+                  <span
+                    className={`px-3 py-1 text-sm font-medium rounded-full ${
+                      viewingUser.isActive
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {viewingUser.isActive ? "Active" : "Inactive"}
                   </span>
                 </div>
 
@@ -268,13 +360,18 @@ export default function UserList() {
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
                       <span className="text-gray-600">Department</span>
                       <span className="font-medium text-gray-900">
-                        {departments.find(d => String(d.id) === String(viewingUser.departmentId))?.name || 'Not assigned'}
+                        {departments.find(
+                          (d) =>
+                            String(d.id) === String(viewingUser.departmentId)
+                        )?.name || "Not assigned"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
                       <span className="text-gray-600">Position</span>
                       <span className="font-medium text-gray-900">
-                        {positions.find(p => String(p.id) === String(viewingUser.positionId))?.name || 'Not assigned'}
+                        {positions.find(
+                          (p) => String(p.id) === String(viewingUser.positionId)
+                        )?.name || "Not assigned"}
                       </span>
                     </div>
                   </div>
@@ -283,27 +380,36 @@ export default function UserList() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
                       <span className="text-gray-600">Student Number</span>
-                      <span className="font-medium text-gray-900">{viewingUser.studentNumber || 'Not assigned'}</span>
+                      <span className="font-medium text-gray-900">
+                        {viewingUser.studentNumber || "Not assigned"}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
                       <span className="text-gray-600">Major</span>
                       <span className="font-medium text-gray-900">
-                        {majors.find(m => String(m.id) === String(viewingUser.majorId))?.name || 'Not assigned'}
+                        {majors.find(
+                          (m) => String(m.id) === String(viewingUser.majorId)
+                        )?.name || "Not assigned"}
                       </span>
-                   </div>
+                    </div>
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
                       <span className="text-gray-600">Academic Year</span>
                       <span className="font-medium text-gray-900">
-                        {academicYears.find(y => String(y.id) === String(viewingUser.academicYearId))?.name || 'Not assigned'}
+                        {academicYears.find(
+                          (y) =>
+                            String(y.id) === String(viewingUser.academicYearId)
+                        )?.name || "Not assigned"}
                       </span>
                     </div>
                   </div>
                 )}
-                
+
                 <div className="mt-6 pt-4 border-t border-gray-100">
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <span>Member since</span>
-                    <span>{new Date(viewingUser.createdAt).toLocaleDateString()}</span>
+                    <span>
+                      {new Date(viewingUser.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -318,69 +424,115 @@ export default function UserList() {
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-xl">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xl font-semibold text-gray-900">
-                    {editingUser ? 'Edit User' : 'Create New User'}
+                    {editingUser ? "Edit User" : "Create New User"}
                   </h3>
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
                     className="text-gray-400 hover:text-gray-600 transition-colors"
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
               </div>
-              
+
               <form onSubmit={handleSubmit} className="p-6">
                 <div className="space-y-6">
                   {/* Basic Information */}
                   <div>
                     <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
-                      <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      <svg
+                        className="w-4 h-4 mr-2 text-blue-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
                       </svg>
                       Basic Information
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Full Name
+                        </label>
                         <input
                           type="text"
                           required
                           value={formData.fullName}
-                          onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              fullName: e.target.value,
+                            })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                           placeholder="Enter full name"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Email Address
+                        </label>
                         <input
                           type="email"
                           required
                           value={formData.email}
-                          onChange={(e) => setFormData({...formData, email: e.target.value})}
+                          onChange={(e) =>
+                            setFormData({ ...formData, email: e.target.value })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                           placeholder="Enter email address"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Password
+                        </label>
                         <input
                           type="password"
                           required={!editingUser}
                           value={formData.password}
-                          onChange={(e) => setFormData({...formData, password: e.target.value})}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              password: e.target.value,
+                            })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                          placeholder={editingUser ? "Leave blank to keep current" : "Enter password"}
+                          placeholder={
+                            editingUser
+                              ? "Leave blank to keep current"
+                              : "Enter password"
+                          }
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Role
+                        </label>
                         <select
                           value={formData.role}
-                          onChange={(e) => setFormData({...formData, role: e.target.value})}
+                          onChange={(e) =>
+                            setFormData({ ...formData, role: e.target.value })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
                         >
                           <option value="STUDENT">Student</option>
@@ -394,35 +546,63 @@ export default function UserList() {
                   {formData.role === "TEACHER" && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
-                        <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        <svg
+                          className="w-4 h-4 mr-2 text-green-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                          />
                         </svg>
                         Teacher Information
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Department
+                          </label>
                           <select
                             value={formData.department_id}
-                            onChange={(e) => setFormData({...formData, department_id: e.target.value})}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                department_id: e.target.value,
+                              })
+                            }
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
                           >
                             <option value="">Select Department</option>
-                            {departments.map(dept => (
-                              <option key={dept.id} value={dept.id}>{dept.name}</option>
+                            {departments.map((dept) => (
+                              <option key={dept.id} value={dept.id}>
+                                {dept.name}
+                              </option>
                             ))}
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Position</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Position
+                          </label>
                           <select
                             value={formData.position_id}
-                            onChange={(e) => setFormData({...formData, position_id: e.target.value})}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                position_id: e.target.value,
+                              })
+                            }
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
                           >
                             <option value="">Select Position</option>
-                            {positions.map(pos => (
-                              <option key={pos.id} value={pos.id}>{pos.name}</option>
+                            {positions.map((pos) => (
+                              <option key={pos.id} value={pos.id}>
+                                {pos.name}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -433,46 +613,86 @@ export default function UserList() {
                   {formData.role === "STUDENT" && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
-                        <svg className="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                        <svg
+                          className="w-4 h-4 mr-2 text-purple-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 14l9-5-9-5-9 5 9 5z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
+                          />
                         </svg>
                         Student Information
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Student Number</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Student Number
+                          </label>
                           <input
                             type="text"
                             value={formData.studentNumber}
-                            onChange={(e) => setFormData({...formData, studentNumber: e.target.value})}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                studentNumber: e.target.value,
+                              })
+                            }
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             placeholder="e.g., 2024001"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Major</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Major
+                          </label>
                           <select
                             value={formData.major_id}
-                            onChange={(e) => setFormData({...formData, major_id: e.target.value})}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                major_id: e.target.value,
+                              })
+                            }
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
                           >
                             <option value="">Select Major</option>
-                            {majors.map(major => (
-                              <option key={major.id} value={major.id}>{major.name}</option>
+                            {majors.map((major) => (
+                              <option key={major.id} value={major.id}>
+                                {major.name}
+                              </option>
                             ))}
                           </select>
                         </div>
                         <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Academic Year</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Academic Year
+                          </label>
                           <select
                             value={formData.academic_year_id}
-                            onChange={(e) => setFormData({...formData, academic_year_id: e.target.value})}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                academic_year_id: e.target.value,
+                              })
+                            }
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
                           >
                             <option value="">Select Academic Year</option>
-                            {academicYears.map(year => (
-                              <option key={year.id} value={year.id}>{year.name}</option>
+                            {academicYears.map((year) => (
+                              <option key={year.id} value={year.id}>
+                                {year.name}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -480,7 +700,7 @@ export default function UserList() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Action Buttons */}
                 <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 mt-6 -mx-6 -mb-6 rounded-b-xl">
                   <div className="flex justify-end space-x-3">
@@ -495,7 +715,7 @@ export default function UserList() {
                       type="submit"
                       className="px-6 py-3 border border-transparent rounded-lg text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl"
                     >
-                      {editingUser ? '✓ Update User' : '+ Create User'}
+                      {editingUser ? "✓ Update User" : "+ Create User"}
                     </button>
                   </div>
                 </div>
@@ -509,82 +729,68 @@ export default function UserList() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      const url = editingUser 
-        ? `http://localhost:3000/api/users/${editingUser.id}`
-        : "http://localhost:3000/api/auth/register";
-      
-      const method = editingUser ? "PUT" : "POST";
-      
       // Prepare body with role-specific fields
       let body = {
         fullName: formData.fullName,
         email: formData.email,
-        role: formData.role
+        role: formData.role,
       };
-      
+
       // Add password if provided or creating new user
       if (!editingUser || formData.password) {
         body.password = formData.password;
       }
-      
+
       // Add role-specific fields
       if (formData.role === "TEACHER") {
         if (formData.department_id) body.department_id = formData.department_id;
         if (formData.position_id) body.position_id = formData.position_id;
       } else if (formData.role === "STUDENT") {
         if (formData.major_id) body.major_id = formData.major_id;
-        if (formData.academic_year_id) body.academic_year_id = formData.academic_year_id;
+        if (formData.academic_year_id)
+          body.academic_year_id = formData.academic_year_id;
         if (formData.studentNumber) body.studentNumber = formData.studentNumber;
       }
 
-      console.log("Submitting to URL:", url);
-      console.log("Using method:", method);
-      console.log("Submitting user data:", JSON.stringify(body));
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(body)
-      });
-
-      console.log("Response status:", res);
-
-      if (res.ok) {
-        setShowCreateModal(false);
-        // Refresh users list
-        const token = localStorage.getItem("accessToken");
-        Promise.all([
-          fetch("http://localhost:3000/api/users", { headers: { Authorization: `Bearer ${token}` } }),
-          fetch("http://localhost:3000/api/departments", { headers: { Authorization: `Bearer ${token}` } }),
-          fetch("http://localhost:3000/api/positions", { headers: { Authorization: `Bearer ${token}` } }),
-          fetch("http://localhost:3000/api/majors", { headers: { Authorization: `Bearer ${token}` } }),
-          fetch("http://localhost:3000/api/academic-years", { headers: { Authorization: `Bearer ${token}` } })
-        ])
-        .then(responses => Promise.all(responses.map(res => res.json())))
-        .then(([userData, deptData, posData, majorData, yearData]) => {
-          if (Array.isArray(userData)) {
-            setUsers(userData);
-          } else if (Array.isArray(userData.data)) {
-            setUsers(userData.data);
-          }
-          if (deptData.status === "success") setDepartments(deptData.data || []);
-          if (posData.status === "success") setPositions(posData.data || []);
-          if (majorData.status === "success") setMajors(majorData.data || []);
-          if (yearData.status === "success") setAcademicYears(yearData.data || []);
-        });
+      if (editingUser) {
+        await api.put(`/users/${editingUser.id}`, body);
       } else {
-        const error = await res.json();
-        alert(error.message || "Operation failed");
+        await api.post("/auth/register", body);
       }
+
+      setShowCreateModal(false);
+      // Refresh lists
+      Promise.all([
+        api.get("/users"),
+        api.get("/departments"),
+        api.get("/positions"),
+        api.get("/majors"),
+        api.get("/academic-years"),
+      ]).then(([userData, deptData, posData, majorData, yearData]) => {
+        if (Array.isArray(userData)) {
+          setUsers(userData);
+        } else if (Array.isArray(userData?.data)) {
+          setUsers(userData.data);
+        }
+        setDepartments(
+          Array.isArray(deptData) ? deptData : deptData?.data || deptData || []
+        );
+        setPositions(
+          Array.isArray(posData) ? posData : posData?.data || posData || []
+        );
+        setMajors(
+          Array.isArray(majorData)
+            ? majorData
+            : majorData?.data || majorData || []
+        );
+        setAcademicYears(
+          Array.isArray(yearData) ? yearData : yearData?.data || yearData || []
+        );
+      });
     } catch (err) {
       console.error(err);
-      alert("Operation failed");
+      alert(err.message || "Operation failed");
     }
   }
 }
