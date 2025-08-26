@@ -1,52 +1,4 @@
-# SDLMS Backend API Routes
-
-## Backend Setup
-
-- **Framework:** Express.js (Node.js runtime)
-- **Database:** PostgreSQL (managed via Docker)
-- **ORM:** Drizzle ORM (type-safe, works well with Postgres and TypeScript)
-- **Package Manager:** npm
-- **Real-time:** Socket.IO (for chat, notifications, live updates)
-- **Auth:** JWT (without refresh tokens), bcrypt for password hashing
-- **Validation:** Zod for request validation
-- **Environment:** dotenv for config, nodemon for dev reloads
-- **Testing:** Vitest or Jest
-- **API Docs:** Swagger (OpenAPI) via swagger-jsdoc or Redocly
-- **File Uploads:** Multer (for local uploads), Cloudinary (for cloud storage of files/images)
-- **Mailer:** Nodemailer (SMTP, Gmail, or transactional email provider)
-- **CORS/Security:** helmet, cors, rate-limiter-flexible
-- **Logging:** pino or winston
-
-**Project Structure Suggestion**
-```text
-backend/
-	src/
-		controllers/
-		db/             # Drizzle config, migrations
-		middlewares/
-		routes/
-		services/
-		utils/
-		app.ts
-		server.ts
-	tests/
-	uploads/
-	.env
-	package.json
-	README.md
-```
-
-**Advice**
-- Use TypeScript for type safety and better Drizzle integration.
-- Keep Docker Compose for Postgres and add a service for the backend if you want to run both together.
-- Use Drizzle’s migration system for schema changes.
-- For real-time, namespace Socket.IO for chat vs. notifications.
-- Use a layered approach: controllers (route handlers), services (business logic), models (Drizzle schemas), and middlewares (auth, validation).
-- Document your API with Swagger and keep your README up to date with setup and run instructions.
-- Use Cloudinary's Node SDK for file uploads; store returned URLs in your database (e.g., for materials, chat attachments). File upload endpoints (e.g., POST /api/offerings/:id/materials, POST /api/chats/rooms/:roomId/messages) should upload to Cloudinary and return the file URL.
-- Use Nodemailer for sending emails (verification, password reset, notifications); configure with environment variables for SMTP or a transactional provider (e.g., SendGrid, Mailgun).
-
-This document outlines the planned API endpoints and core functions for Admin, Teacher, and Student features.
+# API Routes Documentation
 
 ## Middleware Types
 
@@ -219,9 +171,3 @@ This document outlines the planned API endpoints and core functions for Admin, T
 
 - Update user profile
 - Delete user account
-
-## Admin vs Teacher vs Student capabilities
-
-- Admin: manage users, courses, academics, offerings, enrollments, chat rooms, announcements
-- Teacher: manage materials, quizzes, assignments in their offerings; view enrollments
-- Student: view materials for enrolled offerings, submit quizzes/assignments, chat and download

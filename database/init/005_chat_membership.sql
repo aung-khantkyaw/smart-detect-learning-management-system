@@ -1,6 +1,3 @@
--- Enforce chat membership rules and auto-membership
-
--- Helper function to add member safely
 CREATE OR REPLACE FUNCTION add_chat_member(p_room_type TEXT, p_room_id UUID, p_user_id UUID)
 RETURNS VOID AS $$
 BEGIN
@@ -9,7 +6,6 @@ BEGIN
   ON CONFLICT (room_type, room_id, user_id) DO NOTHING;
 END; $$ LANGUAGE plpgsql;
 
--- After creating a course offering, add teacher and enrolled students to course chat automatically
 CREATE OR REPLACE FUNCTION sync_course_chat_members_on_offering()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -27,7 +23,6 @@ CREATE TRIGGER trg_sync_course_chat_members_on_offering
 AFTER INSERT ON course_offerings
 FOR EACH ROW EXECUTE FUNCTION sync_course_chat_members_on_offering();
 
--- When a student enrolls, add them to the course chat
 CREATE OR REPLACE FUNCTION add_student_to_course_chat()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -45,7 +40,6 @@ CREATE TRIGGER trg_add_student_to_course_chat
 AFTER INSERT ON enrollments
 FOR EACH ROW EXECUTE FUNCTION add_student_to_course_chat();
 
--- When an academic chat room is created, add all students enrolled in that academic year
 CREATE OR REPLACE FUNCTION add_students_to_academic_chat()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -62,3 +56,21 @@ DROP TRIGGER IF EXISTS trg_add_students_to_academic_chat ON academic_chat_rooms;
 CREATE TRIGGER trg_add_students_to_academic_chat
 AFTER INSERT ON academic_chat_rooms
 FOR EACH ROW EXECUTE FUNCTION add_students_to_academic_chat();
+
+CREATE OR REPLACE FUNCTION add_new_student_to_academic_chat()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_room_id UUID;
+BEGIN
+  IF NEW.role = 'STUDENT' AND NEW.academic_year_id IS NOT NULL THEN
+    SELECT id INTO v_room_id FROM academic_chat_rooms WHERE academic_year_id = NEW.academic_year_id;
+    IF v_room_id IS NOT NULL THEN
+      PERFORM add_chat_member('ACADEMIC', v_room_id, NEW.id);
+    END IF;
+  END IF;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_add_new_student_to_academic_chat
+AFTER INSERT ON users
+FOR EACH ROW EXECUTE FUNCTION add_new_student_to_academic_chat();

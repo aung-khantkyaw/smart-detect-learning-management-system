@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
-import { academicChatRooms, academicYears } from './../db/schema';
+import { users, courseOfferings, academicChatRooms, academicYears } from './../db/schema';
 import { eq } from "drizzle-orm";
 
 export const getAllAcademicYears = async (req: Request, res: Response) => {
@@ -15,11 +15,14 @@ export const getAllAcademicYears = async (req: Request, res: Response) => {
 
 export const getAcademicYearById = async (req: Request, res: Response) => {
     const { id } = req.params;
+
     try {
         const year = await db.select().from(academicYears).where(eq(academicYears.id, id));
+
         if (year.length === 0) {
             return res.status(404).json({ status: 'error', message: 'Academic year not found' });
         }
+
         res.json({ status: 'success', data: year[0] });
     } catch (error) {
         console.error('Error fetching academic year by ID:', error);
@@ -87,4 +90,45 @@ export const deleteAcademicYear = async (req: Request, res: Response) => {
         console.error('Error deleting academic year:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
+};
+
+export const getOfferingCoursesByAcademicYearId = async (req: Request, res: Response) => {
+    const { academicYearId } = req.params;
+
+    try {
+        const offeringCourses = await db.select().from(courseOfferings).where(eq(courseOfferings.academicYearId, academicYearId));
+
+        if (offeringCourses.length === 0) {
+            return res.status(404).json({ status: 'error', message: 'No courses found for this academic year' });
+        }
+
+        res.json({ status: 'success', data: offeringCourses });
+    } catch (error) {
+        console.error('Error fetching courses by academic year:', error);
+        res.status(500).json({ status: 'error', message: 'Internal server error' });
+    }
+};
+
+export const getAllStudentsByAcademicYear = async (req: Request, res: Response) => {
+  const { academicYearId } = req.params;
+
+  try {
+    const students = await db.select().from(users).where(eq(users.academicYearId, academicYearId));
+    res.json({ status: 'success', data: students });
+  } catch (error) {
+    console.error('Error fetching students by academic year:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+export const getAcademicChatRoomByAcademicYearId = async (req: Request, res: Response) => {
+  const { academicYearId } = req.params;
+
+  try {
+    const chatRoom = await db.select().from(academicChatRooms).where(eq(academicChatRooms.academicYearId, academicYearId));
+    res.json({ status: 'success', data: chatRoom });
+  } catch (error) {
+    console.error('Error fetching chat room by academic year:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
 };

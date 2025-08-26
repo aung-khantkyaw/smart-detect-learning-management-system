@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
-import { positions } from './../db/schema';
+import { positions, users } from './../db/schema';
 import { eq } from "drizzle-orm";
 
 export const getAllPositions = async (req: Request, res: Response) => {
@@ -79,5 +79,22 @@ export const deletePosition = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error deleting position:', error);
     res.status(500).json({ status: 'error', message: 'Failed to delete position' });
+  }
+};
+
+export const getTeacherByPositionId = async (req: Request, res: Response) => {
+  const { positionId } = req.params;
+
+  try {
+    const teachers = await db.select().from(users).where(eq(users.positionId, positionId));
+
+    if (teachers.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'No teachers found for this position' });
+    }
+
+    res.json({ status: 'success', data: teachers });
+  } catch (error) {
+    console.error('Error fetching teachers by position ID:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch teachers' });
   }
 };

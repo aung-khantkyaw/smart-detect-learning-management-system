@@ -17,32 +17,29 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- Tables
-CREATE TABLE IF NOT EXISTS users (
+
+CREATE TABLE IF NOT EXISTS departments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  username CITEXT UNIQUE NOT NULL,
-  email CITEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL,
-  role user_role NOT NULL,
-  full_name TEXT NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  -- Teacher-only fields
-  department TEXT,
-  position TEXT,
-  -- Student-only fields
-  major TEXT,
-  current_academic_year_id UUID,
-  student_number TEXT UNIQUE,
-  -- Auth system fields
-  auth_provider TEXT NOT NULL DEFAULT 'local' CHECK (auth_provider IN ('local','google','microsoft','github','saml')),
-  auth_provider_id TEXT,
-  email_verified_at TIMESTAMPTZ,
-  last_login_at TIMESTAMPTZ,
-  password_reset_token TEXT,
-  password_reset_expires_at TIMESTAMPTZ,
-  mfa_enabled BOOLEAN NOT NULL DEFAULT false,
-  mfa_secret TEXT,
+  name TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (name)
+);
+
+CREATE TABLE IF NOT EXISTS positions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (name)
+);
+
+CREATE TABLE IF NOT EXISTS majors (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (name)
 );
 
 CREATE TABLE IF NOT EXISTS academic_years (
@@ -54,11 +51,35 @@ CREATE TABLE IF NOT EXISTS academic_years (
   UNIQUE (name)
 );
 
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  username CITEXT UNIQUE NOT NULL,
+  email CITEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role user_role NOT NULL,
+  full_name TEXT NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  -- Teacher-only fields
+  department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
+  position_id UUID REFERENCES positions(id) ON DELETE SET NULL,
+  -- Student-only fields
+  major_id UUID REFERENCES majors(id) ON DELETE SET NULL,
+  academic_year_id UUID REFERENCES academic_years(id) ON DELETE SET NULL,
+  student_number TEXT UNIQUE,
+  -- Auth system fields
+  last_login_at TIMESTAMPTZ,
+  password_reset_token TEXT,
+  password_reset_expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS courses (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   code TEXT NOT NULL, -- e.g., CS101
   title TEXT NOT NULL,
   description TEXT,
+  department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (code)
@@ -239,7 +260,8 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = now();
   RETURN NEW;
-END; $$ LANGUAGE plpgsql;
+END; 
+$$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS users_updated_at ON users;
 CREATE TRIGGER users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -249,7 +271,6 @@ CREATE TRIGGER courses_updated_at BEFORE UPDATE ON courses FOR EACH ROW EXECUTE 
 
 DROP TRIGGER IF EXISTS announcements_updated_at ON announcements;
 CREATE TRIGGER announcements_updated_at BEFORE UPDATE ON announcements FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
 -- Policies skeleton (Row Level Security could be enabled in app phase if needed)
 
 -- Seed an admin user placeholder (password hash to be replaced by app)

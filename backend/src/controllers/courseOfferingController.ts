@@ -14,8 +14,9 @@ export const getAllCourseOfferings = async (req: Request, res: Response) => {
 };
 
 export const getCourseOfferingById = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    
     try {
-        const { id } = req.params;
         const courseOffering = await db.select().from(courseOfferings).where(eq(courseOfferings.id, id));
 
         if (courseOffering.length === 0) {
@@ -34,6 +35,7 @@ export const createCourseOffering = async (req: Request, res: Response) => {
 
     try {
         const existingOffering = await db.select().from(courseOfferings).where(and(eq(courseOfferings.courseId, courseId), eq(courseOfferings.academicYearId, academicYearId), eq(courseOfferings.teacherId, teacherId)));
+
         if (existingOffering.length > 0) {
             return res.status(400).json({ status: 'error', message: 'Course offering already exists' });
         }
@@ -42,14 +44,7 @@ export const createCourseOffering = async (req: Request, res: Response) => {
 
         const newCourseOffering = await db.insert(courseOfferings).values(courseOffering).returning();
 
-        const newChatRoom = await db.select().from(courseChatRooms).where(eq(courseChatRooms.offeringId, newCourseOffering[0].id));
-
-        const updateCourseOffering = await db.update(courseOfferings)
-            .set({ roomChatId: newChatRoom[0].id })
-            .where(eq(courseOfferings.id, newCourseOffering[0].id))
-            .returning();
-
-        res.status(201).send({ status: 'success', data: updateCourseOffering[0], chatRoom: newChatRoom[0], message: `${newChatRoom[0]?.name ?? ''} chat room created successfully` });
+        res.status(201).send({ status: 'success', data: newCourseOffering[0] });
     } catch (error) {
         console.error('Error creating course offering:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
@@ -62,6 +57,7 @@ export const updateCourseOffering = async (req: Request, res: Response) => {
 
     try {
         const existingOffering = await db.select().from(courseOfferings).where(and(eq(courseOfferings.courseId, courseId), eq(courseOfferings.academicYearId, academicYearId), eq(courseOfferings.teacherId, teacherId), eq(courseOfferings.id, id)));
+
         if (existingOffering.length > 0) {
             return res.status(400).json({ status: 'error', message: 'Course offering already exists' });
         }

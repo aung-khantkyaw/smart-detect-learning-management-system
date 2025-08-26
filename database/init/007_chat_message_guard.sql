@@ -1,11 +1,8 @@
--- Ensure chat messages are only posted by room members and link to valid rooms
-
 CREATE OR REPLACE FUNCTION validate_chat_message_sender()
 RETURNS TRIGGER AS $$
 DECLARE
   v_exists BOOLEAN;
 BEGIN
-  -- Check room existence
   IF NEW.room_type = 'COURSE' THEN
     PERFORM 1 FROM course_chat_rooms WHERE id = NEW.room_id;
     IF NOT FOUND THEN RAISE EXCEPTION 'Course chat room % does not exist', NEW.room_id; END IF;
@@ -16,7 +13,6 @@ BEGIN
     RAISE EXCEPTION 'Unknown room_type: %', NEW.room_type;
   END IF;
 
-  -- Check sender is a member
   PERFORM 1 FROM chat_members m
    WHERE m.room_type = NEW.room_type
      AND m.room_id = NEW.room_id
