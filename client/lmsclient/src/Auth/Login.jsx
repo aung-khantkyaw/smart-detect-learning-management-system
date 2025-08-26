@@ -34,15 +34,16 @@ export default function LoginForm({ onSubmit }) {
     
       // localStorage.setItem("token", data.data.accessToken);
       localStorage.setItem("role", data.data.role);
-
+     
       localStorage.setItem("accessToken", data.data.accessToken);
       localStorage.setItem("userData", JSON.stringify(data.data));
       
-      if (data.data.role === "Teacher") {
-        window.location.href = "/teacherdashboard";
-      } else {
+     if(data.data.role === 'ADMIN'){
+        window.location.href = "/admin"
+     }else{
         window.location.href = "/dashboard";
       }
+
     } else {
       setErrors(data.message || "Login failed");
     }

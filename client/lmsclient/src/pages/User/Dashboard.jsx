@@ -7,14 +7,18 @@ import { Link, Outlet ,useLocation } from "react-router-dom";
 export default function Home() {
   const location = useLocation();
 
+
+  const handleLogout = () => {
+  // Clear localStorage
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("user");
+
+  // Redirect to login page
+  window.location.href = "/login";
+};
     const [courses, setCourses] = useState([]);
 
-  // useEffect(() => {
-  //   fetch("http://localhost:3000/api/courses")
-  //     .then(res => res.json())
-  //     .then(data => setCourses(data));
-  // }, []);
-
+  
   return (
     <>
     <div>   
@@ -30,7 +34,7 @@ export default function Home() {
         <li>
            <div className="flex items-center space-x-3">
   <p className="mb-6 ml-4 text-xl font-bold text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text">
-    LMS Management System
+    SD - LMS
   </p>
 </div>
         </li>
@@ -175,16 +179,30 @@ export default function Home() {
   <span className="flex-1 ms-3 whitespace-nowrap">Academic Year Chat</span>
 </NavLink>
 <li>
-  <a href="#"
-     className="flex items-center p-2 transition-colors duration-200 rounded-lg hover:bg-gray-700 group">
-  <svg className="w-5 h-5 text-gray-500 transition duration-75 shrink-0 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 16">
-                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M1 8h11m0 0L8 4m4 4-4 4m4-11h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3"/>
-               </svg>
+ <NavLink
+        onClick={handleLogout}
+        className="flex items-center w-full p-2 transition-colors duration-200 rounded-lg hover:bg-gray-700 group"
+      >
+        <svg
+          className="w-5 h-5 text-gray-500 transition duration-75 shrink-0 dark:text-gray-400 group-hover:text-white"
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 18 16"
+        >
+          <path
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M1 8h11m0 0L8 4m4 4-4 4m4-11h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3"
+          />
+        </svg>
 
-    <span className="flex-1 text-gray-600 transition-colors duration-200 ms-3 whitespace-nowrap group-hover:text-white">
-      Log out
-    </span>
-  </a>
+        <span className="flex-1 text-gray-600 transition-colors duration-200 ms-3 whitespace-nowrap group-hover:text-white">
+          Log out
+        </span>
+      </NavLink>
 </li>
 
       </ul>

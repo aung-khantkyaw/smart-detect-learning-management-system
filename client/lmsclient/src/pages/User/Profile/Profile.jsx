@@ -125,7 +125,7 @@ export default function Profile() {
       <p className="text-gray-600">{user?.email}</p>
 
       <p className="text-sm text-gray-500">
-        Student ID: {user?.id}
+        Student Number: {user?.student_number}
       </p>
       <p className="text-sm text-gray-500">
         Academic Year: {user?.academicYear || "N/A"}
