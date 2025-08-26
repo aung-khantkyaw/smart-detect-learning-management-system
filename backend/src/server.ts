@@ -20,6 +20,9 @@ import chatRoomRoutes from './routes/chatRoomRoutes';
 import studentRoutes from './routes/studentRoutes';
 import teacherRoutes from './routes/teacherRoutes';
 import announcementRoutes from './routes/announcementRoutes';
+import materialRoutes from './routes/materialRoutes';
+import quizRoutes from './routes/quizRoutes';
+import assignmentRoutes from './routes/assignmentRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -29,9 +32,11 @@ const server = createServer(app);
 const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || "http://localhost:3000",
-    methods: ["GET", "POST", "PUT", "DELETE"]
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
   }
 });
+// Make io accessible in controllers via req.app.get('io')
+app.set('io', io);
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -55,6 +60,9 @@ app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/chat-rooms', chatRoomRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/materials', materialRoutes);
+app.use('/api/quizzes', quizRoutes);
+app.use('/api/assignments', assignmentRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
