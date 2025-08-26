@@ -1,11 +1,11 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
 import { academicChatRooms, chatMembers, courseChatRooms, courseOfferings, enrollments, users } from '../db/schema'
-import { and, eq } from 'drizzle-orm';
+import { and, eq, not } from 'drizzle-orm';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
-    const allUsers = await db.select().from(users);
+    const allUsers = await db.select().from(users).where(not(eq(users.role, 'ADMIN')));
     res.json({ status: 'success', data: allUsers });
   } catch (error) {
     console.error('Error fetching users:', error);
