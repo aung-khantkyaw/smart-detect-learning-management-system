@@ -102,6 +102,7 @@ declare global {
 global.socketService = socketService;
 
 server.listen(PORT, async () => {
+
   console.log(`Server is running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(`Database test: http://localhost:${PORT}/api/test-db`);

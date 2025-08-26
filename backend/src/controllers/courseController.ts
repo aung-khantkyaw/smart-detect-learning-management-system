@@ -35,7 +35,7 @@ export const createCourse = async (req: Request, res: Response) => {
 
     try {
         const existingCourse = await db.select().from(courses).where(eq(courses.code, code));
-        
+
         if (existingCourse.length > 0) {
             return res.status(400).json({ status: 'error', message: 'Course with this code already exists' });
         }

@@ -18,22 +18,7 @@ export default function Materials() {
         file_url: "#",
         created_at: "2025-08-18T12:30:00Z",
       },
-      {
-        id: "2",
-        title: "Parallel Algorithms PDF",
-        description:
-          "A comprehensive guide to parallel algorithms, scheduling, and efficiency.",
-        file_url: "#",
-        created_at: "2025-08-18T12:30:00Z",
-      },
-      {
-        id: "2",
-        title: "Parallel Algorithms PDF",
-        description:
-          "A comprehensive guide to parallel algorithms, scheduling, and efficiency.",
-        file_url: "#",
-        created_at: "2025-08-18T12:30:00Z",
-      },
+    
   
   ]
   return (

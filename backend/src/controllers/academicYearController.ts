@@ -15,7 +15,7 @@ export const getAllAcademicYears = async (req: Request, res: Response) => {
 
 export const getAcademicYearById = async (req: Request, res: Response) => {
     const { id } = req.params;
-    
+
     try {
         const year = await db.select().from(academicYears).where(eq(academicYears.id, id));
 

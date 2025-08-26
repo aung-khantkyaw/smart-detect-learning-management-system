@@ -35,7 +35,7 @@ export const createCourseOffering = async (req: Request, res: Response) => {
 
     try {
         const existingOffering = await db.select().from(courseOfferings).where(and(eq(courseOfferings.courseId, courseId), eq(courseOfferings.academicYearId, academicYearId), eq(courseOfferings.teacherId, teacherId)));
-        
+
         if (existingOffering.length > 0) {
             return res.status(400).json({ status: 'error', message: 'Course offering already exists' });
         }
@@ -45,7 +45,6 @@ export const createCourseOffering = async (req: Request, res: Response) => {
         const newCourseOffering = await db.insert(courseOfferings).values(courseOffering).returning();
 
         res.status(201).send({ status: 'success', data: newCourseOffering[0] });
-
     } catch (error) {
         console.error('Error creating course offering:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
@@ -58,7 +57,7 @@ export const updateCourseOffering = async (req: Request, res: Response) => {
 
     try {
         const existingOffering = await db.select().from(courseOfferings).where(and(eq(courseOfferings.courseId, courseId), eq(courseOfferings.academicYearId, academicYearId), eq(courseOfferings.teacherId, teacherId), eq(courseOfferings.id, id)));
-        
+
         if (existingOffering.length > 0) {
             return res.status(400).json({ status: 'error', message: 'Course offering already exists' });
         }

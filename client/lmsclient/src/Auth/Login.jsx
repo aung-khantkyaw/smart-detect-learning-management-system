@@ -15,31 +15,43 @@ export default function LoginForm({ onSubmit }) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const validate = () => {
-    const e = {};
-    if (!email.trim()) e.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Enter a valid email";
-    if (!password) e.password = "Password is required";
-    else if (password.length < 6) e.password = "At least 6 characters";
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleSubmit = async (ev) => {
-    ev.preventDefault();
-  if (!validate()) return;
+ const handleLogin = async (e) => {
+    e.preventDefault();
     setLoading(true);
-    try {
-        // add validation on email and password
+    setErrors({});
 
-      // If successful, go to home page
-      navigate("/home");
-    } catch (err) {
-      setErrors("Invalid credentials");
-    } finally {
-      setLoading(false);
+    try {
+      const res = await fetch("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      
+  const data = await res.json();
+
+      if (res.ok && data.status === "success") {
+    
+      // localStorage.setItem("token", data.data.accessToken);
+      localStorage.setItem("role", data.data.role);
+
+      localStorage.setItem("accessToken", data.data.accessToken);
+      localStorage.setItem("userData", JSON.stringify(data.data));
+      
+      if (data.data.role === "Teacher") {
+        window.location.href = "/teacherdashboard";
+      } else {
+        window.location.href = "/dashboard";
+      }
+    } else {
+      setErrors(data.message || "Login failed");
     }
-  };
+  } catch (err) {
+    setErrors("Something went wrong");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
  <div className='m-2 h-[96vh] relative bg-[#5C85D9] text-white rounded-lg '>
@@ -62,7 +74,7 @@ export default function LoginForm({ onSubmit }) {
             {/* <p className="mt-1 text-sm text-zinc-400">Sign in to your account</p> */}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             {/* Email */}
             <label className="block group">
               <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 focus-within:border-zinc-600 px-3 py-2.5 transition-colors">
