@@ -5,8 +5,8 @@ import { authenticateToken, requireAdmin, requireAdminOrSelf, requireAdminOrTeac
 const router = Router();
 
 router.get('/', authenticateToken, requireAdmin, getAllStudents);
-router.get('/:studentId/enrollments', authenticateToken, requireAdminOrTeacher, getEnrollmentByStudentId);
-router.get('/:studentId/course-chat-rooms', authenticateToken, requireAdminOrSelf, getCourseChatRoomsByStudentId);
-router.get('/:studentId/academic-chat-rooms', authenticateToken, requireAdminOrSelf, getAcademicChatRoomByStudentId);
+router.get('/:id/enrollments', authenticateToken, requireAdminOrTeacher, getEnrollmentByStudentId);
+router.get('/:id/course-chat-rooms', authenticateToken, requireAdminOrSelf, getCourseChatRoomsByStudentId);
+router.get('/:id/academic-chat-rooms', authenticateToken, requireAdminOrSelf, getAcademicChatRoomByStudentId);
 
 export default router;

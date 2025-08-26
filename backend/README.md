@@ -178,6 +178,16 @@ This document outlines the planned API endpoints and core functions for Admin, T
 | DELETE | `/messages/:messageId` | `deleteMessage` | `authenticateToken` | Delete a chat message |❎
 | GET | `/messages/:messageId/download` | `downloadChatFile` | `authenticateToken` | Download an attached chat file |❎
 
+## Announcements Routes (`/announcements`)
+
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `listAnnouncements` | `authenticateToken` | List announcements with optional filters: `scope=COURSE|ACADEMIC`, `scopeId=<uuid>`, `limit=<n>` | ✅ |
+| GET | `/:id` | `getAnnouncementById` | `authenticateToken` | Get single announcement by id | ✅ |
+| POST | `/` | `createAnnouncement` | `authenticateToken`, `requireAdminOrTeacher` | Create a new announcement (Admin/Teacher only) | ✅ |
+| PUT | `/:id` | `updateAnnouncement` | `authenticateToken`, `requireAdminOrTeacher` | Update announcement (Admin; Teacher must be author or owner of course offering) | ✅ |
+| DELETE | `/:id` | `deleteAnnouncement` | `authenticateToken`, `requireAdminOrTeacher` | Delete announcement (Admin; Teacher must be author or owner of course offering) | ✅ |
+
 ## Student Routes (`/students`)
 
 | Method | Endpoint | Function | Middleware | Description | IsTest |
@@ -208,6 +218,7 @@ This document outlines the planned API endpoints and core functions for Admin, T
 
 - All GET endpoints for resources
 - User profile updates (own data only)
+- View announcements (list, get by id)
 
 ### Admin Only Endpoints
 
@@ -224,6 +235,7 @@ This document outlines the planned API endpoints and core functions for Admin, T
 
 ### Admin or Teacher Endpoints
 
+- Create/Update/Delete announcements
 - Get students by academic year
 
 ### Admin or Self Endpoints
