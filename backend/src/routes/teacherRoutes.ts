@@ -7,4 +7,5 @@ const router = Router();
 router.get('/', authenticateToken, requireAdmin, getAllTeachers);
 router.get('/:teacherId/course-offerings', authenticateToken, requireAdminOrTeacher, getOfferingCoursesByTeacherId);
 router.get('/:teacherId/course-chat-rooms', authenticateToken, requireAdminOrSelf, getCourseChatRoomsByTeacherId);
+
 export default router;

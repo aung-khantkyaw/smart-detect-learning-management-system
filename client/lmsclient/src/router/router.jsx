@@ -3,7 +3,7 @@ import {
   
   } from "react-router-dom";
   import React from 'react'
-import Home from '../components/Login.jsx';
+import Home from '../Auth/Login.jsx';
 import Dashboard from '../pages/User/Dashboard.jsx';
 import Layout from '../Layout.jsx'
 
@@ -30,16 +30,18 @@ import TeacherCoursePage from '../pages/Teacher/Course/Coursepage.jsx';
 import TeacherCourseList from '../pages/Teacher/Course/CourseList.jsx';
 import TOverview from '../pages/Teacher/Course/components/Overview.jsx';
 import TMaterials from '../pages/Teacher/Course/components/Materials.jsx';
+import Announcementsteacher from '../pages/Teacher/Course/components/Annoucements.jsx';
+import TQuizzes from '../pages/Teacher/Course/components/Quizzes.jsx';
 
 
 const router = createBrowserRouter(
   [
       
     {
-          path: "/", element:<Layout/>,
+          path: "/login", element:<Layout/>,
            children: [
         {
-          path: "/",   element: <Home />,
+          index: true,element: <Home />,
         },
        
       
@@ -53,13 +55,13 @@ const router = createBrowserRouter(
    element: <Dashboard />,
    children: [
        { index: true, element: <CoursePage /> },
-       { path: "/dashboard/profile", element: <Profile /> },
-       { path: "/dashboard/notifications", element: <Notifications /> },
-       {  path: "/dashboard/chat", element: <UserChat />},
-       {path: "/dashboard/academic-chat",element: <AChat />},  //need with course-id for dbms
+       { path: "profile", element: <Profile /> },
+       { path: "notifications", element: <Notifications /> },
+       {  path: "chat", element: <UserChat />},
+       {path: "academic-chat",element: <AChat />},  //need with course-id for dbms
 
        {
-       path: "course/",  // need to add course-id 
+       path: "courses/:id",  // Fixed: removed leading slash for nested route
        element: <CourseOverview />,
        children: [
          { path: "", element: <Overview /> },      // default tab
@@ -94,10 +96,11 @@ const router = createBrowserRouter(
        children: [
          { path: "", element: <TOverview /> },      // default tab
          { path: "materials", element: <TMaterials /> },
-        //  { path: "quiz", element: <Quiz /> },
+         { path: "quiz", element: <TQuizzes /> },
         //  { path: "assignments", element: <Assignments /> },
         //  { path: "chat", element: <Chat /> },
         //  { path: "announcements", element: <Announcements /> },
+         { path: "announcements", element: <Announcementsteacher /> },
        ],
      },
    

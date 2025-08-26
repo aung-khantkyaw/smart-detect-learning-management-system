@@ -9,4 +9,9 @@ router.get('/:id', authenticateToken, getUserById);
 router.put('/:id', authenticateToken, requireAdminOrSelf, updateUser);
 router.patch('/:id/activate', authenticateToken, requireAdmin, banUser);
 
+router.get('/students', authenticateToken, requireAdmin, getAllStudents);
+router.get('/students/:studentId/enrollments', authenticateToken, requireAdmin, getEnrollmentByStudentId);
+router.get('/teachers', authenticateToken, requireAdmin, getAllTeachers);
+router.get('/teachers/:teacherId/course-offerings', authenticateToken, requireAdmin, getOfferingCoursesByTeacherId);
+
 export default router;

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
-import { academicChatRooms, chatMembers, courseChatRooms, courseOfferings, enrollments, users } from '../db/schema';
+import { academicChatRooms, chatMembers, courseChatRooms, courseOfferings, enrollments, users } from '../db/schema'
 import { and, eq } from 'drizzle-orm';
 
 export const getAllUsers = async (req: Request, res: Response) => {

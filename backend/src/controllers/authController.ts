@@ -69,7 +69,7 @@ export const loginUser = async (req: Request, res: Response) => {
     const loginUser = await db.update(users).set({ lastLoginAt: new Date(), accessToken: token }).where(eq(users.id, user[0].id)).returning();
 
     const { password: _, ...userData } = loginUser[0];
-    return res.status(200).json({ status: 'success', data: { ...userData } });
+    return res.status(200).json({ status: 'success', data: { ...userData, accessToken: token } });
   } catch (error) {
     console.error('Error logging in user:', error);
     return res.status(500).json({ status: 'error', message: 'Internal server error' });
