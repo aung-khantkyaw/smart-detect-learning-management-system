@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../../../lib/api";
+import ConfirmDeleteModal from "../../../components/ConfirmDeleteModal";
 
 export default function DepartmentManagement() {
   const [departments, setDepartments] = useState([]);
@@ -8,6 +9,8 @@ export default function DepartmentManagement() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [formData, setFormData] = useState({ name: "" });
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
 
   useEffect(() => {
     fetchDepartments();
@@ -47,16 +50,9 @@ export default function DepartmentManagement() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this department?")) return;
-
-    try {
-      await api.del(`/departments/${id}`);
-      fetchDepartments();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Delete failed");
-    }
+  const handleDelete = (department) => {
+    setConfirmTarget(department);
+    setShowConfirm(true);
   };
 
   if (loading) {
@@ -168,7 +164,7 @@ export default function DepartmentManagement() {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(department.id)}
+                          onClick={() => handleDelete(department)}
                           className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
                         >
                           Delete
@@ -207,6 +203,32 @@ export default function DepartmentManagement() {
             </table>
           </div>
         </div>
+
+        {/* Confirm Delete Modal */}
+        <ConfirmDeleteModal
+          open={showConfirm}
+          title="Delete Department"
+          message={confirmTarget ? `This will permanently delete department "${confirmTarget.name}".` : ""}
+          requiredText={confirmTarget ? `delete ${confirmTarget.name}` : ""}
+          confirmLabel="Delete"
+          onClose={() => {
+            setShowConfirm(false);
+            setConfirmTarget(null);
+          }}
+          onConfirm={async () => {
+            if (!confirmTarget) return;
+            try {
+              await api.del(`/departments/${confirmTarget.id}`);
+              console.log("Department deleted successfully");
+              setShowConfirm(false);
+              setConfirmTarget(null);
+              fetchDepartments();
+            } catch (err) {
+              console.error(err);
+              alert(err.message || "Delete failed");
+            }
+          }}
+        />
 
         {/* Create/Edit Modal */}
         {showCreateModal && (
