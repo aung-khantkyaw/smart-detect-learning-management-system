@@ -77,6 +77,43 @@ export const deleteAcademicYear = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     try {
+        // Prevent deletion if linked data exists
+        const hasOfferings = await db
+          .select({ id: courseOfferings.id })
+          .from(courseOfferings)
+          .where(eq(courseOfferings.academicYearId, id))
+          .limit(1);
+        if (hasOfferings.length > 0) {
+            return res.status(409).json({
+                status: 'error',
+                message: 'Cannot delete academic year: there are course offerings in this year. Remove or move them first.'
+            });
+        }
+
+        const hasUsers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.academicYearId, id))
+          .limit(1);
+        if (hasUsers.length > 0) {
+            return res.status(409).json({
+                status: 'error',
+                message: 'Cannot delete academic year: one or more students/users are assigned to this year. Reassign them first.'
+            });
+        }
+
+        const hasChat = await db
+          .select({ id: academicChatRooms.id })
+          .from(academicChatRooms)
+          .where(eq(academicChatRooms.academicYearId, id))
+          .limit(1);
+        if (hasChat.length > 0) {
+            return res.status(409).json({
+                status: 'error',
+                message: 'Cannot delete academic year: an academic chat room exists for this year. Remove it first.'
+            });
+        }
+
         const deletedYear = await db.delete(academicYears)
             .where(eq(academicYears.id, id))
             .returning();

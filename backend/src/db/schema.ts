@@ -49,11 +49,11 @@ export const users = pgTable('users', {
   fullName: text('full_name').notNull(),
   isActive: boolean('is_active').notNull().default(true),
   // Teacher-only fields
-  departmentId: uuid('department_id').references(() => departments.id, { onDelete: 'set null' }),
-  positionId: uuid('position_id').references(() => positions.id, { onDelete: 'set null' }),
+  departmentId: uuid('department_id').references(() => departments.id, { onDelete: 'cascade' }),
+  positionId: uuid('position_id').references(() => positions.id, { onDelete: 'cascade' }),
   // Student-only fields
-  majorId: uuid('major_id').references(() => majors.id, { onDelete: 'set null' }),
-  academicYearId: uuid('academic_year_id').references(() => academicYears.id, { onDelete: 'set null' }),
+  majorId: uuid('major_id').references(() => majors.id, { onDelete: 'cascade' }),
+  academicYearId: uuid('academic_year_id').references(() => academicYears.id, { onDelete: 'cascade' }),
   studentNumber: text('student_number').unique(),
   // Auth system fields
   lastLoginAt: timestamp('last_login_at'),
@@ -70,7 +70,7 @@ export const courses = pgTable('courses', {
   code: text('code').notNull().unique(),
   title: text('title').notNull(),
   description: text('description'),
-  departmentId: uuid('department_id').notNull().references(() => departments.id, { onDelete: 'set null' }),
+  departmentId: uuid('department_id').notNull().references(() => departments.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow()
 });
@@ -145,7 +145,7 @@ export const announcements = pgTable('announcements', {
   scopeId: uuid('scope_id').notNull(),
   title: text('title').notNull(),
   content: text('content').notNull(),
-  authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+  authorId: uuid('author_id').references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow()
 }, (table) => ({
@@ -159,7 +159,7 @@ export const materials = pgTable('materials', {
   title: text('title').notNull(),
   description: text('description'),
   fileUrl: text('file_url'),
-  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').notNull().defaultNow()
 });
 

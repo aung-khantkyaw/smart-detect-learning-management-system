@@ -69,6 +69,20 @@ export const deleteMajor = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     try {
+        // Prevent deletion if any users/students are assigned to this major
+        const hasUsers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.majorId, id))
+          .limit(1);
+        if (hasUsers.length > 0) {
+          return res.status(409).json({
+            status: 'error',
+            message:
+              'Cannot delete major: one or more users/students are assigned to this major. Reassign those users first.'
+          });
+        }
+
         const deletedMajor = await db.delete(majors).where(eq(majors.id, id)).returning();
 
         if (deletedMajor.length === 0) {

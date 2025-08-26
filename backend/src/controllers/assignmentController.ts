@@ -9,6 +9,27 @@ import {
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
+// Get all assignments
+export const getAllAssignments = async (req: Request, res: Response) => {
+  try {
+    const assignmentsList = await db
+      .select({
+        id: assignments.id,
+        title: assignments.title,
+        description: assignments.description,
+        dueAt: assignments.dueAt,
+        createdAt: assignments.createdAt
+      })
+      .from(assignments)
+      .orderBy(desc(assignments.createdAt));
+
+    res.json({status: 'success', data: assignmentsList, count: assignmentsList.length});
+  } catch (error) {
+    console.error('Error fetching assignments:', error);
+    res.status(500).json({ error: 'Failed to fetch assignments' });
+  }
+};
+
 // Get all assignments for a course offering
 export const getAssignments = async (req: Request, res: Response) => {
   try {

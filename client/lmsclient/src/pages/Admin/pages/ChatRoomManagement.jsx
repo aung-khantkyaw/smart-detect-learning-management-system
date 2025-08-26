@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { api } from "../../../lib/api";
 
 export default function ChatRoomManagement() {
   const [chatRooms, setChatRooms] = useState([]);
@@ -15,33 +16,27 @@ export default function ChatRoomManagement() {
   }, []);
 
   const fetchData = async () => {
-    const token = localStorage.getItem("accessToken");
     try {
-      const [academicRes, courseRes, usersRes, coursesRes] = await Promise.all([
-        fetch("http://localhost:3000/api/chat-rooms/academic", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/chat-rooms/course", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/users", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/courses", { headers: { Authorization: `Bearer ${token}` } })
-      ]);
-
       const [academicData, courseData, usersData, coursesData] = await Promise.all([
-        academicRes.ok ? academicRes.json() : Promise.resolve({ status: "error", data: [] }),
-        courseRes.ok ? courseRes.json() : Promise.resolve({ status: "error", data: [] }),
-        usersRes.ok ? usersRes.json() : Promise.resolve({ status: "error", data: [] }),
-        coursesRes.ok ? coursesRes.json() : Promise.resolve({ status: "error", data: [] })
+        api.get("/chat-rooms/academic"),
+        api.get("/chat-rooms/course"),
+        api.get("/users"),
+        api.get("/courses")
       ]);
       
       // Combine academic and course chat rooms with type info
       const allRooms = [];
-      if (academicData.status === "success" && Array.isArray(academicData.data)) {
-        allRooms.push(...academicData.data.map(room => ({ ...room, roomType: 'academic' })));
+      const academicRooms = Array.isArray(academicData) ? academicData : academicData?.data || [];
+      const courseRooms = Array.isArray(courseData) ? courseData : courseData?.data || [];
+      if (Array.isArray(academicRooms)) {
+        allRooms.push(...academicRooms.map(room => ({ ...room, roomType: 'academic' })));
       }
-      if (courseData.status === "success" && Array.isArray(courseData.data)) {
-        allRooms.push(...courseData.data.map(room => ({ ...room, roomType: 'course' })));
+      if (Array.isArray(courseRooms)) {
+        allRooms.push(...courseRooms.map(room => ({ ...room, roomType: 'course' })));
       }
       setChatRooms(allRooms);
-      setUsers(Array.isArray(usersData) ? usersData : usersData.data || []);
-      setCourses(coursesData.status === "success" ? coursesData.data : []);
+      setUsers(Array.isArray(usersData) ? usersData : usersData?.data || []);
+      setCourses(Array.isArray(coursesData) ? coursesData : coursesData?.data || []);
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
@@ -50,24 +45,13 @@ export default function ChatRoomManagement() {
   };
 
   const fetchRoomMembers = async (room) => {
-    const token = localStorage.getItem("accessToken");
     try {
       const endpoint = room.roomType === 'academic' 
-        ? `http://localhost:3000/api/chat-rooms/academic/${room.id}/members`
-        : `http://localhost:3000/api/chat-rooms/course/${room.id}/members`;
-      
-      const res = await fetch(endpoint, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (!res.ok) {
-        console.error("Failed to fetch room members:", res.status, res.statusText);
-        setRoomMembers([]);
-        return;
-      }
-      
-      const data = await res.json();
-      setRoomMembers(data.status === "success" ? data.data : []);
+        ? `/chat-rooms/academic/${room.id}/members`
+        : `/chat-rooms/course/${room.id}/members`;
+      const data = await api.get(endpoint);
+      const members = Array.isArray(data) ? data : data?.data || [];
+      setRoomMembers(members);
     } catch (err) {
       console.error("Error fetching room members:", err);
       setRoomMembers([]);
@@ -94,7 +78,7 @@ export default function ChatRoomManagement() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">💬 Chat Room Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Chat Room Management</h1>
             <p className="text-gray-600">View and manage chat rooms and their members</p>
           </div>
         </div>
