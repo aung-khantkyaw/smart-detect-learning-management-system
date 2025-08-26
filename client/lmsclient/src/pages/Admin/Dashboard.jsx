@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { api } from "../../lib/api";
 export default function Home() {
   const location = useLocation();
 
@@ -30,13 +31,21 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    // Clear localStorage
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
-
-    // Redirect to login page
-    window.location.href = "/login";
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout", {});
+    } catch (e) {
+      // no-op: proceed to clear client state regardless of server result
+      console.error("Logout error:", e);
+    } finally {
+      // Clear localStorage
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+      localStorage.removeItem("userData");
+      localStorage.removeItem("role");
+      // Redirect to login page
+      window.location.href = "/login";
+    }
   };
 
   return (
@@ -62,8 +71,12 @@ export default function Home() {
                         SD
                       </div>
                       <div className="flex flex-col leading-tight">
-                        <span className="text-sm font-semibold text-gray-900">Smart Detect LMS</span>
-                        <span className="text-xs text-gray-500">Admin Dashboard</span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          Smart Detect LMS
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          Admin Dashboard
+                        </span>
                       </div>
                     </div>
                     <svg
@@ -72,7 +85,11 @@ export default function Home() {
                       fill="currentColor"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </NavLink>
                 </li>
@@ -99,7 +116,9 @@ export default function Home() {
                         <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
                     </div>
-                    <span className="ml-2 text-sm font-medium">Departments</span>
+                    <span className="ml-2 text-sm font-medium">
+                      Departments
+                    </span>
                     <svg
                       className="ml-auto h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400"
                       viewBox="0 0 20 20"
@@ -144,7 +163,11 @@ export default function Home() {
                       fill="currentColor"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </NavLink>
                 </li>
@@ -171,14 +194,20 @@ export default function Home() {
                         <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <span className="ml-2 text-sm font-medium">Academic Years</span>
+                    <span className="ml-2 text-sm font-medium">
+                      Academic Years
+                    </span>
                     <svg
                       className="ml-auto h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </NavLink>
                 </li>
@@ -213,7 +242,11 @@ export default function Home() {
                       fill="currentColor"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </NavLink>
                 </li>
@@ -241,14 +274,20 @@ export default function Home() {
                         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                       </svg>
                     </div>
-                    <span className="ml-2 text-sm font-medium">User Management</span>
+                    <span className="ml-2 text-sm font-medium">
+                      User Management
+                    </span>
                     <svg
                       className="ml-auto h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </NavLink>
                 </li>
@@ -275,14 +314,20 @@ export default function Home() {
                         <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                       </svg>
                     </div>
-                    <span className="ml-2 text-sm font-medium">Course Management</span>
+                    <span className="ml-2 text-sm font-medium">
+                      Course Management
+                    </span>
                     <svg
                       className="ml-auto h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </NavLink>
                 </li>
@@ -309,14 +354,20 @@ export default function Home() {
                         <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                       </svg>
                     </div>
-                    <span className="ml-2 text-sm font-medium">Course Offerings</span>
+                    <span className="ml-2 text-sm font-medium">
+                      Course Offerings
+                    </span>
                     <svg
                       className="ml-auto h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </NavLink>
                 </li>
@@ -343,14 +394,20 @@ export default function Home() {
                         <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                       </svg>
                     </div>
-                    <span className="ml-2 text-sm font-medium">Enrollments</span>
+                    <span className="ml-2 text-sm font-medium">
+                      Enrollments
+                    </span>
                     <svg
                       className="ml-auto h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </NavLink>
                 </li>
@@ -377,14 +434,20 @@ export default function Home() {
                         <path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                       </svg>
                     </div>
-                    <span className="ml-2 text-sm font-medium">Announcements</span>
+                    <span className="ml-2 text-sm font-medium">
+                      Announcements
+                    </span>
                     <svg
                       className="ml-auto h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </NavLink>
                 </li>
@@ -418,7 +481,11 @@ export default function Home() {
                       fill="currentColor"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </NavLink>
                 </li>
@@ -459,12 +526,20 @@ export default function Home() {
                     </div>
                   </div>
                   <svg
-                    className={`ml-auto h-4 w-4 text-gray-300 transition-transform ${userMenuOpen ? "rotate-180 text-gray-400" : "group-hover:text-gray-400"}`}
+                    className={`ml-auto h-4 w-4 text-gray-300 transition-transform ${
+                      userMenuOpen
+                        ? "rotate-180 text-gray-400"
+                        : "group-hover:text-gray-400"
+                    }`}
                     viewBox="0 0 20 20"
                     fill="currentColor"
                     xmlns="http://www.w3.org/2000/svg"
                   >
-                    <path fillRule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clipRule="evenodd" />
+                    <path
+                      fillRule="evenodd"
+                      d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </button>
 

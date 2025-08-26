@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import { api } from "../../../lib/api";
+import ConfirmDeleteModal from "../../../components/ConfirmDeleteModal";
 
 export default function UserList() {
   const [users, setUsers] = useState([]);
@@ -10,6 +11,10 @@ export default function UserList() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [viewingUser, setViewingUser] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -25,48 +30,74 @@ export default function UserList() {
   const [positions, setPositions] = useState([]);
   const [majors, setMajors] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
+  const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
+  const [emailUsername, setEmailUsername] = useState("");
+
+  function getEmailUsername(email) {
+    if (!email) return "";
+    const lower = String(email).toLowerCase();
+    const domain = "@sdlms.edu.mm";
+    if (lower.endsWith(domain)) {
+      return email.slice(0, -domain.length);
+    }
+    return String(email).split("@")[0] || "";
+  }
 
   useEffect(() => {
-    // Fetch users and dropdown data
-    Promise.all([
-      api.get("/users"),
-      api.get("/departments"),
-      api.get("/positions"),
-      api.get("/majors"),
-      api.get("/academic-years"),
-    ])
-      .then(([userData, deptData, posData, majorData, yearData]) => {
-        // Set users
-        if (Array.isArray(userData)) {
-          setUsers(userData);
-        } else if (Array.isArray(userData?.data)) {
-          setUsers(userData.data);
-        } else {
-          setUsers([]);
-        }
-
-        // Set dropdown data
-        setDepartments(
-          Array.isArray(deptData) ? deptData : deptData?.data || deptData || []
-        );
-        setPositions(
-          Array.isArray(posData) ? posData : posData?.data || posData || []
-        );
-        setMajors(
-          Array.isArray(majorData)
-            ? majorData
-            : majorData?.data || majorData || []
-        );
-        setAcademicYears(
-          Array.isArray(yearData) ? yearData : yearData?.data || yearData || []
-        );
-      })
-      .catch((err) => {
-        console.error("Error fetching data:", err);
-        setUsers([]);
-      })
-      .finally(() => setLoading(false));
+    refreshData();
   }, []);
+
+  useEffect(() => {
+    if (showCreateModal) {
+      if (editingUser) {
+        setEmailUsername(getEmailUsername(editingUser.email));
+      } else {
+        setEmailUsername("");
+      }
+    }
+  }, [showCreateModal, editingUser]);
+
+  async function refreshData() {
+    // Fetch users and dropdown data
+    try {
+      const [userData, deptData, posData, majorData, yearData] =
+        await Promise.all([
+          api.get("/users"),
+          api.get("/departments"),
+          api.get("/positions"),
+          api.get("/majors"),
+          api.get("/academic-years"),
+        ]);
+
+      if (Array.isArray(userData)) {
+        setUsers(userData);
+      } else if (Array.isArray(userData?.data)) {
+        setUsers(userData.data);
+      } else {
+        setUsers([]);
+      }
+
+      setDepartments(
+        Array.isArray(deptData) ? deptData : deptData?.data || deptData || []
+      );
+      setPositions(
+        Array.isArray(posData) ? posData : posData?.data || posData || []
+      );
+      setMajors(
+        Array.isArray(majorData)
+          ? majorData
+          : majorData?.data || majorData || []
+      );
+      setAcademicYears(
+        Array.isArray(yearData) ? yearData : yearData?.data || yearData || []
+      );
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const filteredUsers = users.filter((u) => {
     const matchesRole = filterRole === "All" || u.role === filterRole;
@@ -98,7 +129,7 @@ export default function UserList() {
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              👥 User Management
+              User Management
             </h1>
             <p className="text-gray-600">Manage and monitor all system users</p>
           </div>
@@ -116,6 +147,7 @@ export default function UserList() {
                 academic_year_id: "",
                 studentNumber: "",
               });
+              setEmailUsername("");
               setShowCreateModal(true);
             }}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -236,33 +268,98 @@ export default function UserList() {
                           {u.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right space-x-2">
-                        <button
-                          onClick={() => setViewingUser(u)}
-                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingUser(u);
-                            setFormData({
-                              fullName: u.fullName || "",
-                              email: u.email || "",
-                              password: "",
-                              role: u.role || "STUDENT",
-                              department_id: u.department_id || "",
-                              position_id: u.position_id || "",
-                              major_id: u.major_id || "",
-                              academic_year_id: u.academic_year_id || "",
-                              studentNumber: u.studentNumber || "",
-                            });
-                            setShowCreateModal(true);
-                          }}
-                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          Edit
-                        </button>
+                      <td className="px-6 py-4 text-right">
+                        <div className="relative inline-block text-left">
+                          <button
+                            type="button"
+                            aria-haspopup="menu"
+                            aria-expanded={actionMenuOpenId === u.id}
+                            onClick={() =>
+                              setActionMenuOpenId((prev) =>
+                                prev === u.id ? null : u.id
+                              )
+                            }
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            title="Actions"
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          </button>
+
+                          {actionMenuOpenId === u.id && (
+                            <div
+                              role="menu"
+                              className="absolute right-0 z-20 mt-2 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none"
+                            >
+                              <div className="py-1">
+                                <button
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setViewingUser(u);
+                                    setActionMenuOpenId(null);
+                                  }}
+                                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                >
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                  View
+                                </button>
+                                <button
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setEditingUser(u);
+                                    setFormData({
+                                      fullName: u.fullName || "",
+                                      email: u.email || "",
+                                      password: "",
+                                      role: u.role || "STUDENT",
+                                      department_id: u.department_id || "",
+                                      position_id: u.position_id || "",
+                                      major_id: u.major_id || "",
+                                      academic_year_id: u.academic_year_id || "",
+                                      studentNumber: u.studentNumber || "",
+                                    });
+                                    setShowCreateModal(true);
+                                    setActionMenuOpenId(null);
+                                  }}
+                                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                >
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z" /></svg>
+                                  Edit
+                                </button>
+                                <button
+                                  role="menuitem"
+                                  onClick={() => {
+                                    handleToggleActive(u);
+                                    setActionMenuOpenId(null);
+                                  }}
+                                  className={`flex items-center w-full text-left px-3 py-2 text-sm ${u.isActive ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
+                                >
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                                  {u.isActive ? "Ban" : "Unban"}
+                                </button>
+                                <button
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setConfirmTarget(u);
+                                    setDeleteError("");
+                                    setShowConfirm(true);
+                                    setActionMenuOpenId(null);
+                                  }}
+                                  className="flex items-center w-full text-left px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
+                                >
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -491,16 +588,32 @@ export default function UserList() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Email Address
                         </label>
-                        <input
-                          type="email"
-                          required
-                          value={formData.email}
-                          onChange={(e) =>
-                            setFormData({ ...formData, email: e.target.value })
-                          }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                          placeholder="Enter email address"
-                        />
+                        <div className="flex items-stretch">
+                          <input
+                            type="text"
+                            required
+                            value={emailUsername}
+                            onChange={(e) => {
+                              const v = e.target.value.replace(/\s+/g, "");
+                              setEmailUsername(v);
+                              setFormData({
+                                ...formData,
+                                email: v ? `${v}@sdlms.edu.mm` : "",
+                              });
+                            }}
+                            pattern="^[A-Za-z0-9._-]+$"
+                            title="Allowed: letters, numbers, dot, underscore, hyphen"
+                            className="max-w-[170px] px-4 py-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                            placeholder="username"
+                          />
+                          <span className="inline-flex items-center px-3 border border-l-0 border-gray-300 bg-gray-50 text-gray-700 rounded-r-lg text-sm whitespace-nowrap">
+                            @sdlms.edu.mm
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Only the username part is needed. The domain is fixed
+                          to @sdlms.edu.mm
+                        </p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -639,18 +752,27 @@ export default function UserList() {
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Student Number
                           </label>
-                          <input
-                            type="text"
-                            value={formData.studentNumber}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                studentNumber: e.target.value,
-                              })
-                            }
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                            placeholder="e.g., 2024001"
-                          />
+                          <div className="flex items-stretch">
+                            <span className="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-700 rounded-l-lg text-sm whitespace-nowrap">
+                              sdlms-
+                            </span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="^[0-9]+$"
+                              title="Digits only"
+                              value={(formData.studentNumber || "").replace(/^sdlms-/, "")}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/\D/g, "");
+                                setFormData({
+                                  ...formData,
+                                  studentNumber: digits ? `sdlms-${digits}` : "",
+                                });
+                              }}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              placeholder="e.g., 2024001"
+                            />
+                          </div>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -724,16 +846,62 @@ export default function UserList() {
           </div>
         )}
       </div>
+      {/* Confirm Delete Modal */}
+      <ConfirmDeleteModal
+        open={showConfirm}
+        title="Delete User"
+        message={
+          confirmTarget
+            ? `This will permanently delete user "${
+                confirmTarget.fullName || confirmTarget.email
+              }".`
+            : ""
+        }
+        requiredText={confirmTarget ? `delete ${confirmTarget.email}` : ""}
+        confirmLabel="Delete"
+        error={deleteError}
+        loading={deleting}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={async () => {
+          if (!confirmTarget) return;
+          try {
+            setDeleting(true);
+            setDeleteError("");
+            await api.del("/auth/delete", { userId: confirmTarget.id });
+            setShowConfirm(false);
+            setConfirmTarget(null);
+            await refreshData();
+          } catch (err) {
+            setDeleteError(err.message || "Failed to delete user");
+          } finally {
+            setDeleting(false);
+          }
+        }}
+      />
     </div>
   );
 
   async function handleSubmit(e) {
     e.preventDefault();
     try {
+      // Compose email from username input and validate domain
+      const username = (emailUsername || "").trim();
+      const domain = "@sdlms.edu.mm";
+      const composedEmail = username
+        ? `${username}${domain}`
+        : formData.email || "";
+      const emailRegex = /^[A-Za-z0-9._-]+@sdlms\.edu\.mm$/;
+      if (!emailRegex.test(composedEmail)) {
+        alert(
+          "Please enter a valid username. The email will be username@sdlms.edu.mm"
+        );
+        return;
+      }
+
       // Prepare body with role-specific fields
       let body = {
         fullName: formData.fullName,
-        email: formData.email,
+        email: composedEmail,
         role: formData.role,
       };
 
@@ -791,6 +959,16 @@ export default function UserList() {
     } catch (err) {
       console.error(err);
       alert(err.message || "Operation failed");
+    }
+  }
+
+  async function handleToggleActive(user) {
+    try {
+      await api.patch(`/users/${user.id}/activate`);
+      await refreshData();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to update status");
     }
   }
 }

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { api } from "../lib/api";
 
 import brain from '../assets/img/brain.png'
 import bulb from '../assets/img/bulb.png'
@@ -8,7 +9,7 @@ import cross from '../assets/img/cross.png'
 import line from '../assets/img/line.png'
 import line2 from '../assets/img/line2.png'
 
-export default function LoginForm({ onSubmit }) {
+export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -21,37 +22,23 @@ export default function LoginForm({ onSubmit }) {
     setErrors({});
 
     try {
-      const res = await fetch("http://localhost:3000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const data = await api.post("/auth/login", { email, password });
 
-      
-  const data = await res.json();
+      localStorage.setItem("role", data.role);
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("userData", JSON.stringify(data));
 
-      if (res.ok && data.status === "success") {
-    
-      // localStorage.setItem("token", data.data.accessToken);
-      localStorage.setItem("role", data.data.role);
-     
-      localStorage.setItem("accessToken", data.data.accessToken);
-      localStorage.setItem("userData", JSON.stringify(data.data));
-      
-     if(data.data.role === 'ADMIN'){
-        window.location.href = "/admin/departments";
-     }
-     if(data.data.role == 'STUDENT'){
+      if (data.role === 'ADMIN') {
+        window.location.href = "/admin";
+      } else if (data.role === 'STUDENT') {
         window.location.href = "/dashboard";
-      }
-     if(data.data.role == 'TEACHER'){
+      } else if (data.role === 'TEACHER') {
         window.location.href = "/teacher";
+      } else {
+        window.location.href = "/";
       }
-    } else {
-      setErrors(data.message || "Login failed");
-    }
   } catch (err) {
-    setErrors("Something went wrong");
+    setErrors(err?.message || "Login failed");
   } finally {
     setLoading(false);
   }

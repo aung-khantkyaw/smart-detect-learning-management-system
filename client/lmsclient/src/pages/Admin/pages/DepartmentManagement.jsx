@@ -11,6 +11,8 @@ export default function DepartmentManagement() {
   const [formData, setFormData] = useState({ name: "" });
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     fetchDepartments();
@@ -52,6 +54,7 @@ export default function DepartmentManagement() {
 
   const handleDelete = (department) => {
     setConfirmTarget(department);
+    setDeleteError("");
     setShowConfirm(true);
   };
 
@@ -69,7 +72,7 @@ export default function DepartmentManagement() {
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              🏢 Department Management
+              Department Management
             </h1>
             <p className="text-gray-600">Manage academic departments</p>
           </div>
@@ -211,21 +214,29 @@ export default function DepartmentManagement() {
           message={confirmTarget ? `This will permanently delete department "${confirmTarget.name}".` : ""}
           requiredText={confirmTarget ? `delete ${confirmTarget.name}` : ""}
           confirmLabel="Delete"
+          error={deleteError}
+          loading={deleting}
           onClose={() => {
             setShowConfirm(false);
             setConfirmTarget(null);
+            setDeleting(false);
+            setDeleteError("");
           }}
           onConfirm={async () => {
             if (!confirmTarget) return;
             try {
+              setDeleting(true);
+              setDeleteError("");
               await api.del(`/departments/${confirmTarget.id}`);
               console.log("Department deleted successfully");
               setShowConfirm(false);
               setConfirmTarget(null);
+              setDeleting(false);
               fetchDepartments();
             } catch (err) {
               console.error(err);
-              alert(err.message || "Delete failed");
+              setDeleteError(err.message || "Delete failed");
+              setDeleting(false);
             }
           }}
         />
