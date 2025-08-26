@@ -138,6 +138,45 @@
 | PUT | `/:id` | `updateAnnouncement` | `authenticateToken`, `requireAdminOrTeacher` | Update announcement (Admin; Teacher must be author or owner of course offering) | ✅ |
 | DELETE | `/:id` | `deleteAnnouncement` | `authenticateToken`, `requireAdminOrTeacher` | Delete announcement (Admin; Teacher must be author or owner of course offering) | ✅ |
 
+## Materials Routes (`/materials`)
+
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `listMaterials` | `authenticateToken` | List materials for an offering. Requires `offeringId` query param. Access: Admin; Teacher who owns the offering; Enrolled Student | ✅ |
+| GET | `/:id` | `getMaterialById` | `authenticateToken` | Get a single material by id (same access as list) | ✅ |
+| GET | `/:id/download` | `download` | `authenticateToken` | Download the attached file if present (same access as list) | ✅ |
+| POST | `/` | `createMaterial` | `authenticateToken`, `requireAdminOrTeacher`, `materialsUpload`, `validateCreateMaterial` | Create a material with optional file upload. Only Admin or the Teacher who owns the offering | ✅ |
+| PUT | `/:id` | `updateMaterial` | `authenticateToken`, `requireAdminOrTeacher`, `materialsUpload`, `validateUpdateMaterial` | Update title/description and optionally replace file (only Admin or owning Teacher) | ✅ |
+| DELETE | `/:id` | `deleteMaterial` | `authenticateToken`, `requireAdminOrTeacher` | Delete a material (only Admin or owning Teacher) | ✅ |
+
+## Quiz Routes (`/quizzes`)
+
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `listQuizzes` | `authenticateToken` | List quizzes for an offering. Requires `offeringId` query param. Access: Admin; Teacher who owns the offering; Enrolled Student | ✅ |
+| GET | `/:quizId` | `getQuizDetail` | `authenticateToken` | Get a quiz with questions and options (same access as list) | ✅ |
+| POST | `/` | `createQuiz` | `authenticateToken`, `requireAdminOrTeacher` | Create a quiz (Admin or owning Teacher) | ✅ |
+| POST | `/:quizId/questions` | `addQuestion` | `authenticateToken`, `requireAdminOrTeacher` | Add a question (and options for choice types) to a quiz (Admin or owning Teacher) | ✅ |
+| DELETE | `/:quizId` | `deleteQuiz` | `authenticateToken`, `requireAdminOrTeacher` | Delete a quiz (Admin or owning Teacher) | ✅ |
+| POST | `/:quizId/submit` | `submitQuiz` | `authenticateToken` | Submit answers to a quiz (Students only; must be enrolled) | ✅ |
+| GET | `/submissions/:submissionId` | `getSubmission` | `authenticateToken` | Get a submission. Access: Admin; Owning Teacher of offering; The student who submitted | ✅ |
+
+## Assignment Routes (`/assignments`)
+
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `listAssignments` | `authenticateToken` | List assignments for an offering. Requires `offeringId` query param. Access: Admin; Teacher who owns the offering; Enrolled Student | ✅ |
+| GET | `/:id` | `getAssignmentById` | `authenticateToken` | Get one assignment (same access as list) | ✅ |
+| POST | `/` | `createAssignment` | `authenticateToken`, `requireAdminOrTeacher` | Create an assignment (Admin or owning Teacher) | ✅ |
+| PUT | `/:id` | `updateAssignment` | `authenticateToken`, `requireAdminOrTeacher` | Update an assignment (Admin or owning Teacher) | ✅ |
+| DELETE | `/:id` | `deleteAssignment` | `authenticateToken`, `requireAdminOrTeacher` | Delete an assignment (Admin or owning Teacher) | ✅ |
+| POST | `/:assignmentId/submit-text` | `submitAssignmentText` | `authenticateToken` | Student submits text answer; AI detection runs; if flagged as non-human, increments AI flag counter and sends notifications to teacher and student | ✅ |
+
+Notes:
+- AI detection API: POST https://laziestant-ai-text-detection.onrender.com/predict with body `{ "text": "..." }`.
+- Response example: `{ "prediction": "human" | "ai", "confidence": number }`.
+- If prediction != human, the system increments `ai_flags` for the student in the offering and inserts `notifications` for both teacher and student.
+
 ## Student Routes (`/students`)
 
 | Method | Endpoint | Function | Middleware | Description | IsTest |
@@ -186,6 +225,9 @@
 ### Admin or Teacher Endpoints
 
 - Create/Update/Delete announcements
+- Create/Update/Delete materials (Teacher limited to own course offerings)
+- Create/Delete quizzes; Add questions/options (Teacher limited to own course offerings)
+- Create/Update/Delete assignments (Teacher limited to own course offerings)
 - Get students by academic year
 
 ### Admin or Self Endpoints
