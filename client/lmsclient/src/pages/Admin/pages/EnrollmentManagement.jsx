@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { api } from "../../../lib/api";
 
 export default function EnrollmentManagement() {
   const [enrollments, setEnrollments] = useState([]);
@@ -19,26 +20,21 @@ export default function EnrollmentManagement() {
   }, []);
 
   const fetchData = async () => {
-    const token = localStorage.getItem("accessToken");
     try {
-      const [enrollmentsRes, offeringsRes, studentsRes, coursesRes, teachersRes] = await Promise.all([
-        fetch("http://localhost:3000/api/enrollments", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/course-offerings", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/users?role=STUDENT", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/courses", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/users?role=TEACHER", { headers: { Authorization: `Bearer ${token}` } })
-      ]);
-
       const [enrollmentsData, offeringsData, studentsData, coursesData, teachersData] = await Promise.all([
-        enrollmentsRes.json(), offeringsRes.json(), studentsRes.json(), coursesRes.json(), teachersRes.json()
+        api.get("/enrollments"),
+        api.get("/course-offerings"),
+        api.get("/users?role=STUDENT"),
+        api.get("/courses"),
+        api.get("/users?role=TEACHER")
       ]);
 
-      setEnrollments(enrollmentsData.status === "success" ? enrollmentsData.data : []);
-      setCourseOfferings(offeringsData.status === "success" ? offeringsData.data : []);
-      const allUsers = Array.isArray(studentsData) ? studentsData : studentsData.data || [];
-      setStudents(allUsers.filter(user => user.role === 'STUDENT'));
-      setCourses(coursesData.status === "success" ? coursesData.data : []);
-      setTeachers(Array.isArray(teachersData) ? teachersData : teachersData.data || []);
+      setEnrollments(Array.isArray(enrollmentsData) ? enrollmentsData : enrollmentsData?.data || []);
+      setCourseOfferings(Array.isArray(offeringsData) ? offeringsData : offeringsData?.data || []);
+      const studentUsers = Array.isArray(studentsData) ? studentsData : studentsData?.data || [];
+      setStudents(studentUsers.filter(user => user.role === 'STUDENT'));
+      setCourses(Array.isArray(coursesData) ? coursesData : coursesData?.data || []);
+      setTeachers(Array.isArray(teachersData) ? teachersData : teachersData?.data || []);
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
@@ -57,7 +53,6 @@ export default function EnrollmentManagement() {
 
   const handleEnroll = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("accessToken");
     
     try {
       const requestBody = {
@@ -65,49 +60,25 @@ export default function EnrollmentManagement() {
         offeringId: formData.offeringId
       };
       
-      const res = await fetch("http://localhost:3000/api/enrollments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (res.ok) {
-        setShowEnrollModal(false);
-        fetchData();
-        setFormData({ studentId: "", offeringId: "" });
-      } else {
-        const error = await res.json();
-        alert(error.message || "Enrollment failed");
-      }
+      await api.post("/enrollments", requestBody);
+      setShowEnrollModal(false);
+      fetchData();
+      setFormData({ studentId: "", offeringId: "" });
     } catch (err) {
       console.error(err);
-      alert("Enrollment failed");
+      alert(err.message || "Enrollment failed");
     }
   };
 
   const handleUnenroll = async (enrollmentId) => {
     if (!confirm("Are you sure you want to unenroll this student?")) return;
     
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      const res = await fetch(`http://localhost:3000/api/enrollments/${enrollmentId}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        fetchData();
-      } else {
-        const error = await res.json();
-        alert(error.message || "Unenrollment failed");
-      }
+      await api.del(`/enrollments/${enrollmentId}`);
+      fetchData();
     } catch (err) {
       console.error(err);
-      alert("Unenrollment failed");
+      alert(err.message || "Unenrollment failed");
     }
   };
 
@@ -124,7 +95,7 @@ export default function EnrollmentManagement() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">📝 Enrollment Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Enrollment Management</h1>
             <p className="text-gray-600">Manage student enrollments in course offerings</p>
           </div>
           <button

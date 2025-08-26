@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { api } from "../../../lib/api";
 
 export default function AnnouncementManagement() {
   const [announcements, setAnnouncements] = useState([]);
@@ -19,19 +20,14 @@ export default function AnnouncementManagement() {
   }, []);
 
   const fetchData = async () => {
-    const token = localStorage.getItem("accessToken");
     try {
-      const [announcementsRes, coursesRes] = await Promise.all([
-        fetch("http://localhost:3000/api/announcements", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/courses", { headers: { Authorization: `Bearer ${token}` } })
-      ]);
-
       const [announcementsData, coursesData] = await Promise.all([
-        announcementsRes.json(), coursesRes.json()
+        api.get("/announcements"),
+        api.get("/courses")
       ]);
 
-      setAnnouncements(announcementsData.status === "success" ? announcementsData.data : []);
-      setCourses(coursesData.status === "success" ? coursesData.data : []);
+      setAnnouncements(Array.isArray(announcementsData) ? announcementsData : announcementsData?.data || []);
+      setCourses(Array.isArray(coursesData) ? coursesData : coursesData?.data || []);
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
@@ -46,58 +42,30 @@ export default function AnnouncementManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("accessToken");
     
     try {
-      const url = editingAnnouncement 
-        ? `http://localhost:3000/api/announcements/${editingAnnouncement.id}`
-        : "http://localhost:3000/api/announcements";
-      
-      const method = editingAnnouncement ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (res.ok) {
-        setShowCreateModal(false);
-        fetchData();
-        setFormData({ title: "", content: "", course_id: "", priority: "NORMAL" });
+      if (editingAnnouncement) {
+        await api.put(`/announcements/${editingAnnouncement.id}`, formData);
       } else {
-        const error = await res.json();
-        alert(error.message || "Operation failed");
+        await api.post("/announcements", formData);
       }
+      setShowCreateModal(false);
+      fetchData();
+      setFormData({ title: "", content: "", course_id: "", priority: "NORMAL" });
     } catch (err) {
       console.error(err);
-      alert("Operation failed");
+      alert(err.message || "Operation failed");
     }
   };
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this announcement?")) return;
-    
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      const res = await fetch(`http://localhost:3000/api/announcements/${id}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        fetchData();
-      } else {
-        const error = await res.json();
-        alert(error.message || "Delete failed");
-      }
+      await api.del(`/announcements/${id}`);
+      fetchData();
     } catch (err) {
       console.error(err);
-      alert("Delete failed");
+      alert(err.message || "Delete failed");
     }
   };
 
@@ -114,7 +82,7 @@ export default function AnnouncementManagement() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">📢 Announcement Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Announcement Management</h1>
             <p className="text-gray-600">Create and manage course announcements</p>
           </div>
           <button

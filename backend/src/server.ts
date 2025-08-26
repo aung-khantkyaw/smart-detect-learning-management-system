@@ -29,19 +29,36 @@ dotenv.config();
 
 const app = express();
 const server = createServer(app);
+// Allow multiple origins in CLIENT_URL, comma-separated
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
   }
 });
 // Make io accessible in controllers via req.app.get('io')
 app.set('io', io);
-const PORT = process.env.PORT || 3000;
+const PORT: number = Number(process.env.PORT) || 3000;
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+// Express CORS using same allowed origins
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow non-browser requests (no origin) and whitelisted origins
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -111,7 +128,7 @@ declare global {
 }
 global.socketService = socketService;
 
-server.listen(PORT, async () => {
+server.listen(PORT, '0.0.0.0', async () => {
 
   console.log(`Server is running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import ConfirmDeleteModal from "../../../components/ConfirmDeleteModal";
+import { api } from "../../../lib/api";
 
 export default function MajorManagement() {
   const [majors, setMajors] = useState([]);
@@ -7,19 +9,19 @@ export default function MajorManagement() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingMajor, setEditingMajor] = useState(null);
   const [formData, setFormData] = useState({ name: "" });
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     fetchMajors();
   }, []);
 
   const fetchMajors = async () => {
-    const token = localStorage.getItem("accessToken");
     try {
-      const res = await fetch("http://localhost:3000/api/majors", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      setMajors(data.status === "success" ? data.data : []);
+      const data = await api.get("/majors");
+      setMajors(Array.isArray(data) ? data : data?.data || []);
     } catch (err) {
       console.error("Error fetching majors:", err);
       setMajors([]);
@@ -34,59 +36,26 @@ export default function MajorManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("accessToken");
     
     try {
-      const url = editingMajor 
-        ? `http://localhost:3000/api/majors/${editingMajor.id}`
-        : "http://localhost:3000/api/majors";
-      
-      const method = editingMajor ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (res.ok) {
-        setShowCreateModal(false);
-        fetchMajors();
-        setFormData({ name: "" });
+      if (editingMajor) {
+        await api.put(`/majors/${editingMajor.id}`, formData);
       } else {
-        const error = await res.json();
-        alert(error.message || "Operation failed");
+        await api.post("/majors", formData);
       }
+      setShowCreateModal(false);
+      fetchMajors();
+      setFormData({ name: "" });
     } catch (err) {
       console.error(err);
-      alert("Operation failed");
+      alert(err.message || "Operation failed");
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this major?")) return;
-    
-    const token = localStorage.getItem("accessToken");
-    
-    try {
-      const res = await fetch(`http://localhost:3000/api/majors/${id}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        fetchMajors();
-      } else {
-        const error = await res.json();
-        alert(error.message || "Delete failed");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Delete failed");
-    }
+  const handleDelete = (major) => {
+    setConfirmTarget(major);
+    setDeleteError("");
+    setShowConfirm(true);
   };
 
   if (loading) {
@@ -102,7 +71,7 @@ export default function MajorManagement() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">🎓 Major Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Major Management</h1>
             <p className="text-gray-600">Manage academic majors</p>
           </div>
           <button
@@ -173,7 +142,7 @@ export default function MajorManagement() {
                           Edit
                         </button>
                         <button 
-                          onClick={() => handleDelete(major.id)}
+                          onClick={() => handleDelete(major)}
                           className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
                         >
                           Delete
@@ -199,6 +168,39 @@ export default function MajorManagement() {
             </table>
           </div>
         </div>
+
+        {/* Confirm Delete Modal */}
+        <ConfirmDeleteModal
+          open={showConfirm}
+          title="Delete Major"
+          message={confirmTarget ? `This will permanently delete major "${confirmTarget.name}".` : ""}
+          requiredText={confirmTarget ? `delete ${confirmTarget.name}` : ""}
+          confirmLabel="Delete"
+          error={deleteError}
+          loading={deleting}
+          onClose={() => {
+            setShowConfirm(false);
+            setConfirmTarget(null);
+            setDeleting(false);
+            setDeleteError("");
+          }}
+          onConfirm={async () => {
+            if (!confirmTarget) return;
+            try {
+              setDeleting(true);
+              setDeleteError("");
+              await api.del(`/majors/${confirmTarget.id}`);
+              setShowConfirm(false);
+              setConfirmTarget(null);
+              setDeleting(false);
+              fetchMajors();
+            } catch (err) {
+              console.error(err);
+              setDeleteError(err.message || "Delete failed");
+              setDeleting(false);
+            }
+          }}
+        />
 
         {/* Create/Edit Modal */}
         {showCreateModal && (

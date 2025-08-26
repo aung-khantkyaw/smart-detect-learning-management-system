@@ -9,13 +9,17 @@ import {
   getAssignmentSubmissions,
   getStudentSubmissions,
   gradeSubmission,
+  getAllAssignments,
 } from '../controllers/assignmentController';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requireAdminOrTeacher, requireStudent } from '../middleware/auth';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticateToken);
+
+// Get all assignments
+router.get('/', getAllAssignments);
 
 // Get all assignments for a course offering
 router.get('/offering/:offeringId', getAssignments);
@@ -24,24 +28,24 @@ router.get('/offering/:offeringId', getAssignments);
 router.get('/:id', getAssignment);
 
 // Create a new assignment
-router.post('/offering/:offeringId', createAssignment);
+router.post('/offering/:offeringId', requireAdminOrTeacher, createAssignment);
 
 // Update an assignment
-router.put('/:id', updateAssignment);
+router.put('/:id', requireAdminOrTeacher, updateAssignment);
 
 // Delete an assignment
-router.delete('/:id', deleteAssignment);
+router.delete('/:id', requireAdminOrTeacher, deleteAssignment);
 
 // Submit assignment (student)
-router.post('/:id/submit', submitAssignment);
+router.post('/:id/submit', requireStudent, submitAssignment);
 
 // Student: list own submissions for an assignment
-router.get('/:id/my-submissions', getStudentSubmissions);
+router.get('/:id/my-submissions', requireStudent, getStudentSubmissions);
 
 // Teacher: grade a submission
-router.patch('/submissions/:submissionId/grade', gradeSubmission);
+router.patch('/submissions/:submissionId/grade', requireAdminOrTeacher, gradeSubmission);
 
 // Teacher: get all submissions for an assignment
-router.get('/:id/submissions', getAssignmentSubmissions);
+router.get('/:id/submissions', requireAdminOrTeacher, getAssignmentSubmissions);
 
 export default router;

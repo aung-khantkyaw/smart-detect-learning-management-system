@@ -12,6 +12,28 @@ import {
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
+// Get all quizzes
+export const getAllQuizzes = async (req: Request, res: Response) => {
+  try {
+    const quizzesList = await db
+      .select({
+        id: quizzes.id,
+        title: quizzes.title,
+        instructions: quizzes.instructions,
+        openAt: quizzes.openAt,
+        closeAt: quizzes.closeAt,
+        createdAt: quizzes.createdAt
+      })
+      .from(quizzes)
+      .orderBy(desc(quizzes.createdAt));
+
+    res.json(quizzesList);
+  } catch (error) {
+    console.error('Error fetching quizzes:', error);
+    res.status(500).json({ error: 'Failed to fetch quizzes' });
+  }
+};
+
 // Get all quizzes for a course offering
 export const getQuizzes = async (req: Request, res: Response) => {
   try {
@@ -34,7 +56,7 @@ export const getQuizzes = async (req: Request, res: Response) => {
       .where(eq(quizzes.offeringId, offeringId))
       .orderBy(desc(quizzes.createdAt));
 
-    res.json(quizzesList);
+    res.json({status: 'success', data: quizzesList, count: quizzesList.length});
   } catch (error) {
     console.error('Error fetching quizzes:', error);
     res.status(500).json({ error: 'Failed to fetch quizzes' });
