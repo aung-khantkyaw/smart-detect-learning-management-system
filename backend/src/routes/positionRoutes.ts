@@ -17,6 +17,6 @@ router.post("/", authenticateToken, requireAdmin, createPosition);
 router.put("/:id", authenticateToken, requireAdmin, updatePosition);
 router.delete("/:id", authenticateToken, requireAdmin, deletePosition);
 
-router.get("/:positionId/teachers", authenticateToken, getTeacherByPositionId);
+router.get("/:id/teachers", authenticateToken, getTeacherByPositionId);
 
 export default router;

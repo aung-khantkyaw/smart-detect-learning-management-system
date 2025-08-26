@@ -1,4 +1,8 @@
-# Real-Time Chat Integration Guide
+# Real-Time Chat Integration Guide — Moved
+
+This content has been consolidated into a single guide: `backend/REALTIME_INTEGRATION.md`.
+
+Please refer to `REALTIME_INTEGRATION.md` for the latest, combined instructions covering both Chat and Announcements.
 
 ## Overview
 Complete guide for integrating Socket.IO real-time messaging with your frontend application.

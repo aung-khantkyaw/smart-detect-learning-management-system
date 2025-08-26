@@ -10,7 +10,7 @@ router.post("/", authenticateToken, requireAdmin, createDepartment);
 router.put("/:id", authenticateToken, requireAdmin, updateDepartment);
 router.delete("/:id", authenticateToken, requireAdmin, deleteDepartment);
 
-router.get("/:departmentId/courses", authenticateToken, getCourseByDepartmentId);
-router.get("/:departmentId/teachers", authenticateToken, getTeacherByDepartmentId);
+router.get("/:id/courses", authenticateToken, getCourseByDepartmentId);
+router.get("/:id/teachers", authenticateToken, getTeacherByDepartmentId);
 
 export default router;
