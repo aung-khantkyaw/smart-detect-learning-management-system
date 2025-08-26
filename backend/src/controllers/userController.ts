@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
-import { courseOfferings, enrollments, users } from '../db/schema';
+import { academicChatRooms, chatMembers, courseChatRooms, courseOfferings, enrollments, users } from '../db/schema'
 import { and, eq } from 'drizzle-orm';
 
 export const getAllUsers = async (req: Request, res: Response) => {
@@ -106,6 +106,54 @@ export const getEnrollmentByStudentId = async (req: Request, res: Response) => {
   }
 };
 
+export const getCourseChatRoomsByStudentId = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const chatRooms = await db.select().from(chatMembers).where(and(eq(chatMembers.userId, id), eq(chatMembers.roomType, 'COURSE')));
+
+    if (chatRooms.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'No chat rooms found for this student' });
+    }
+
+    const chatRoomDetails: any[] = [];
+
+    await Promise.all(chatRooms.map(async (chatRoom) => {
+      const chatRoomDetail = await db.select().from(courseChatRooms).where(eq(courseChatRooms.id, chatRoom.roomId));
+      chatRoomDetails.push(chatRoomDetail);
+    }));
+
+    res.json({ status: 'success', data: chatRoomDetails });
+  } catch (error) {
+    console.error('Error fetching course chat rooms by student ID:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+export const getAcademicChatRoomByStudentId = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const chatRooms = await db.select().from(chatMembers).where(and(eq(chatMembers.userId, id), eq(chatMembers.roomType, 'ACADEMIC')));
+
+    if (chatRooms.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'No chat rooms found for this student' });
+    }
+
+    const chatRoomDetails: any[] = [];
+
+    await Promise.all(chatRooms.map(async (chatRoom) => {
+      const chatRoomDetail = await db.select().from(academicChatRooms).where(eq(academicChatRooms.id, chatRoom.roomId));
+      chatRoomDetails.push(chatRoomDetail);
+    }));
+
+    res.json({ status: 'success', data: chatRoomDetails });
+  } catch (error) {
+    console.error('Error fetching academic chat rooms by student ID:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
 export const getAllTeachers = async (req: Request, res: Response) => {
   try {
     const teachers = await db.select().from(users).where(eq(users.role, 'TEACHER'));
@@ -129,6 +177,30 @@ export const getOfferingCoursesByTeacherId = async (req: Request, res: Response)
     res.json({ status: 'success', data: offeringCourses });
   } catch (error) {
     console.error('Error fetching offering courses by teacher ID:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+export const getCourseChatRoomsByTeacherId = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const chatRooms = await db.select().from(chatMembers).where(and(eq(chatMembers.userId, id), eq(chatMembers.roomType, 'COURSE')));
+
+    if (chatRooms.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'No chat rooms found for this teacher' });
+    }
+
+    const chatRoomDetails: any[] = [];
+
+    await Promise.all(chatRooms.map(async (chatRoom) => {
+      const chatRoomDetail = await db.select().from(courseChatRooms).where(eq(courseChatRooms.id, chatRoom.roomId));
+      chatRoomDetails.push(chatRoomDetail);
+    }));
+
+    res.json({ status: 'success', data: chatRoomDetails });
+  } catch (error) {
+    console.error('Error fetching course chat rooms by teacher ID:', error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };

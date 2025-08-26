@@ -43,7 +43,6 @@ export default function LoginForm({ onSubmit }) {
      }else{
         window.location.href = "/dashboard";
       }
-
     } else {
       setErrors(data.message || "Login failed");
     }

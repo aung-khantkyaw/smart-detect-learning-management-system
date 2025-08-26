@@ -7,7 +7,6 @@ import { Link, Outlet ,useLocation } from "react-router-dom";
 export default function Home() {
   const location = useLocation();
 
-
   const handleLogout = () => {
   // Clear localStorage
   localStorage.removeItem("accessToken");

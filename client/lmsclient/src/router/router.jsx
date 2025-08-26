@@ -118,7 +118,6 @@ const router = createBrowserRouter(
       //  { path: "/dashboard/notifications", element: <Notifications /> },
       //  {  path: "/dashboard/chat", element: <UserChat />},
       //  {path: "/dashboard/academic-chat",element: <AChat />},  //need with course-id for dbms
-
       //  {
       //  path: "courselist/",
       //  element: <TeacherCourseList />,

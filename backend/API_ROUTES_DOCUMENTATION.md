@@ -116,11 +116,27 @@
 
 | Method | Endpoint | Function | Middleware | Description | IsTest |
 |--------|----------|----------|------------|-------------|--------|
-| GET | `/` | Inline function | `authenticateToken` | Chat room test endpoint |❎
+| GET | `/` | `getAllChatRooms` | `authenticateToken` | Get all chat rooms |❎
 | GET | `/academic` | `getAllAcademicChatRooms` | `authenticateToken` | Get all academic chat rooms |❎
-| GET | `/course` | `getAllCourseChatRooms` | `authenticateToken` | Get all course chat rooms |❎
 | GET | `/academic/:id` | `getAcademicChatRoomById` | `authenticateToken` | Get academic chat room by ID |❎
+| GET | `/academic/:id/members` | `getAcademicChatRoomMembers` | `authenticateToken` | Get members of an academic chat room |❎
+| GET | `/course` | `getAllCourseChatRooms` | `authenticateToken` | Get all course chat rooms |❎
 | GET | `/course/:id` | `getCourseChatRoomById` | `authenticateToken` | Get course chat room by ID |❎
+| GET | `/course/:id/members` | `getCourseChatRoomMembers` | `authenticateToken` | Get members of a course chat room |❎
+| GET | `/:roomType/:roomId/messages` | `getChatMessages` | `authenticateToken` | Get chat messages for a room |❎
+| POST | `/send-message` | `sendMessage` | `authenticateToken`, `fileUploadMiddleware`, `validateChatMessage` | Send a chat message (text/file) |❎
+| DELETE | `/messages/:messageId` | `deleteMessage` | `authenticateToken` | Delete a chat message |❎
+| GET | `/messages/:messageId/download` | `downloadChatFile` | `authenticateToken` | Download an attached chat file |❎
+
+## Announcements Routes (`/announcements`)
+
+| Method | Endpoint | Function | Middleware | Description | IsTest |
+|--------|----------|----------|------------|-------------|--------|
+| GET | `/` | `listAnnouncements` | `authenticateToken` | List announcements with optional filters: `scope=COURSE|ACADEMIC`, `scopeId=<uuid>`, `limit=<n>` | ✅ |
+| GET | `/:id` | `getAnnouncementById` | `authenticateToken` | Get single announcement by id | ✅ |
+| POST | `/` | `createAnnouncement` | `authenticateToken`, `requireAdminOrTeacher` | Create a new announcement (Admin/Teacher only) | ✅ |
+| PUT | `/:id` | `updateAnnouncement` | `authenticateToken`, `requireAdminOrTeacher` | Update announcement (Admin; Teacher must be author or owner of course offering) | ✅ |
+| DELETE | `/:id` | `deleteAnnouncement` | `authenticateToken`, `requireAdminOrTeacher` | Delete announcement (Admin; Teacher must be author or owner of course offering) | ✅ |
 
 ## Student Routes (`/students`)
 
@@ -128,6 +144,8 @@
 |--------|----------|----------|------------|-------------|--------|
 | GET | `/` | `getAllStudents` | `authenticateToken`, `requireAdmin` | Get all students |✅
 | GET | `/:studentId/enrollments` | `getEnrollmentByStudentId` | `authenticateToken`, `requireAdminOrTeacher` | Get enrollments by student |❎
+| GET | `/:studentId/course-chat-rooms` | `getCourseChatRoomsByStudentId` | `authenticateToken`, `requireAdminOrSelf` | Get course chat rooms for student |❎
+| GET | `/:studentId/academic-chat-rooms` | `getAcademicChatRoomByStudentId` | `authenticateToken`, `requireAdminOrSelf` | Get academic chat rooms for student |❎
 
 ## Teacher Routes (`/teachers`)
 
@@ -135,6 +153,7 @@
 |--------|----------|----------|------------|-------------|--------|
 | GET | `/` | `getAllTeachers` | `authenticateToken`, `requireAdmin` | Get all teachers |✅
 | GET | `/:teacherId/course-offerings` | `getOfferingCoursesByTeacherId` | `authenticateToken`, `requireAdminOrTeacher` | Get course offerings by teacher |❎
+| GET | `/:teacherId/course-chat-rooms` | `getCourseChatRoomsByTeacherId` | `authenticateToken`, `requireAdminOrSelf` | Get course chat rooms for teacher |❎
 
 ## Access Control Summary
 
@@ -149,6 +168,7 @@
 
 - All GET endpoints for resources
 - User profile updates (own data only)
+- View announcements (list, get by id)
 
 ### Admin Only Endpoints
 
@@ -165,6 +185,7 @@
 
 ### Admin or Teacher Endpoints
 
+- Create/Update/Delete announcements
 - Get students by academic year
 
 ### Admin or Self Endpoints

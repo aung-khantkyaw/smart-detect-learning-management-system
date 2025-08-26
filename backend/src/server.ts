@@ -19,6 +19,7 @@ import chatRoutes from './routes/chatRoutes';
 import chatRoomRoutes from './routes/chatRoomRoutes';
 import studentRoutes from './routes/studentRoutes';
 import teacherRoutes from './routes/teacherRoutes';
+import announcementRoutes from './routes/announcementRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -53,6 +54,7 @@ app.use('/api/course-offerings', courseOfferingRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/chat-rooms', chatRoomRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

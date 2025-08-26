@@ -17,6 +17,6 @@ router.post("/", authenticateToken, requireAdmin, createCourse);
 router.put("/:id", authenticateToken, requireAdmin, updateCourse);
 router.delete("/:id", authenticateToken, requireAdmin, deleteCourse);
 
-router.get("/:courseId/course-offerings", authenticateToken, requireAdmin, getOfferingCoursesByCourseId);
+router.get("/:id/course-offerings", authenticateToken, requireAdmin, getOfferingCoursesByCourseId);
 
 export default router;

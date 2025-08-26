@@ -1,10 +1,12 @@
 import { Router } from 'express';
-import { getAllStudents, getEnrollmentByStudentId } from '../controllers/userController';
-import { authenticateToken, requireAdmin, requireAdminOrTeacher } from '../middleware/auth';
+import { getAcademicChatRoomByStudentId, getAllStudents, getCourseChatRoomsByStudentId, getEnrollmentByStudentId } from '../controllers/userController';
+import { authenticateToken, requireAdmin, requireAdminOrSelf, requireAdminOrTeacher } from '../middleware/auth';
 
 const router = Router();
 
 router.get('/', authenticateToken, requireAdmin, getAllStudents);
-router.get('/:studentId/enrollments', authenticateToken, requireAdminOrTeacher, getEnrollmentByStudentId);
+router.get('/:id/enrollments', authenticateToken, requireAdminOrTeacher, getEnrollmentByStudentId);
+router.get('/:id/course-chat-rooms', authenticateToken, requireAdminOrSelf, getCourseChatRoomsByStudentId);
+router.get('/:id/academic-chat-rooms', authenticateToken, requireAdminOrSelf, getAcademicChatRoomByStudentId);
 
 export default router;
