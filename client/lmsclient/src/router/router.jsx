@@ -36,13 +36,16 @@ import PositionManagement from '../pages/Admin/pages/PositionManagement.jsx';
 import MajorManagement from '../pages/Admin/pages/MajorManagement.jsx';
 
 //teacher
-// import TeacherDashboard from '../pages/Teacher/Dashboard.jsx';
-// import TeacherCoursePage from '../pages/Teacher/Course/Coursepage.jsx';
-// import TeacherCourseList from '../pages/Teacher/Course/CourseList.jsx';
-// import TOverview from '../pages/Teacher/Course/components/Overview.jsx';
-// import TMaterials from '../pages/Teacher/Course/components/Materials.jsx';
-// import Announcementsteacher from '../pages/Teacher/Course/components/Annoucements.jsx';
-// import TQuizzes from '../pages/Teacher/Course/components/Quizzes.jsx';
+import TeacherDashboard from '../pages/Teacher/Dashboard.jsx';
+import MyCourses from '../pages/Teacher/MyCourses.jsx';
+import TeacherProfile from '../pages/Teacher/Profile.jsx';
+import TeacherCourseDetails from '../pages/Teacher/Course/CourseDetails.jsx';
+import TeacherOverview from '../pages/Teacher/Course/components/Overview.jsx';
+import TeacherMaterials from '../pages/Teacher/Materials.jsx';
+import Students from '../pages/Teacher/Course/components/Students.jsx';
+import Quizzes from '../pages/Teacher/Course/components/Quizzes.jsx';
+import TeacherChat from '../pages/Teacher/Course/components/Chat.jsx';
+import TAssignments from '../pages/Teacher/Course/components/Assignments.jsx';
 
 
 const router = createBrowserRouter(
@@ -109,28 +112,26 @@ const router = createBrowserRouter(
  },
 
  //Teacher route 
-//  {
-//    path: "/teacherdashboard",
-//    element: <TeacherDashboard />,
-//    children: [
-//        { index: true, element: <TeacherCoursePage /> },
-      //  { path: "/dashboard/profile", element: <Profile /> },
-      //  { path: "/dashboard/notifications", element: <Notifications /> },
-      //  {  path: "/dashboard/chat", element: <UserChat />},
-      //  {path: "/dashboard/academic-chat",element: <AChat />},  //need with course-id for dbms
-      //  {
-      //  path: "courselist/",
-      //  element: <TeacherCourseList />,
-      //  children: [
-      //    { path: "", element: <TOverview /> },      // default tab
-        //  { path: "materials", element: <TMaterials /> },
-        //  { path: "quiz", element: <TQuizzes /> },
-        //  { path: "assignments", element: <Assignments /> },
-        //  { path: "chat", element: <Chat /> },
-        //  { path: "announcements", element: <Announcements /> },
-    //      { path: "announcements", element: <Announcementsteacher /> },
-    //    ],
-    //  },
+ {
+   path: "/teacher",
+   element: <TeacherDashboard />,
+   children: [
+       { index: true, element: <MyCourses /> },
+       { path: "profile", element: <TeacherProfile /> },
+       {
+         path: "courses/:id",
+         element: <TeacherCourseDetails />,
+         children: [
+           { path: "", element: <TeacherOverview /> },
+           { path: "materials", element: <TeacherMaterials /> },
+           { path: "students", element: <Students /> },
+           { path: "quizzes", element: <Quizzes /> },
+           { path: "assignments", element: <TAssignments /> },
+           { path: "chat", element: <TeacherChat /> },
+         ]
+       },
+   ]
+ },
    
   
 //    ],
