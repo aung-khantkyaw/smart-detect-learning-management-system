@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 
 export default function CourseManagement() {
   const [courses, setCourses] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -10,7 +11,8 @@ export default function CourseManagement() {
   const [formData, setFormData] = useState({
     code: "",
     title: "",
-    description: ""
+    description: "",
+    departmentId: ""
   });
 
   useEffect(() => {
@@ -20,15 +22,19 @@ export default function CourseManagement() {
   const fetchCourses = async () => {
     const token = localStorage.getItem("accessToken");
     try {
-      const res = await fetch("http://localhost:3000/api/courses", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.status === "success") {
-        setCourses(data.data);
-      }
+      const [coursesRes, departmentsRes] = await Promise.all([
+        fetch("http://localhost:3000/api/courses", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("http://localhost:3000/api/departments", { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      
+      const [coursesData, departmentsData] = await Promise.all([
+        coursesRes.json(), departmentsRes.json()
+      ]);
+      
+      if (coursesData.status === "success") setCourses(coursesData.data);
+      if (departmentsData.status === "success") setDepartments(departmentsData.data);
     } catch (err) {
-      console.error("Error fetching courses:", err);
+      console.error("Error fetching data:", err);
     } finally {
       setLoading(false);
     }
@@ -62,7 +68,7 @@ export default function CourseManagement() {
       if (res.ok) {
         setShowCreateModal(false);
         fetchCourses();
-        setFormData({ code: "", title: "", description: "" });
+        setFormData({ code: "", title: "", description: "", departmentId: "" });
       } else {
         const error = await res.json();
         alert(error.message || "Operation failed");
@@ -92,7 +98,7 @@ export default function CourseManagement() {
           <button
             onClick={() => {
               setEditingCourse(null);
-              setFormData({ code: "", title: "", description: "" });
+              setFormData({ code: "", title: "", description: "", departmentId: "" });
               setShowCreateModal(true);
             }}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
@@ -130,7 +136,7 @@ export default function CourseManagement() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -147,10 +153,11 @@ export default function CourseManagement() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-500 max-w-xs truncate">
-                          {course.description || "No description"}
+                        <div className="text-sm text-gray-900">
+                          {departments.find(d => d.id === course.departmentId)?.name || 'No Department'}
                         </div>
                       </td>
+                      
                       <td className="px-6 py-4 text-right space-x-2">
                         <button 
                           onClick={() => setViewingCourse(course)}
@@ -164,7 +171,8 @@ export default function CourseManagement() {
                             setFormData({
                               code: course.code || "",
                               title: course.title || "",
-                              description: course.description || ""
+                              description: course.description || "",
+                              departmentId: course.departmentId || ""
                             });
                             setShowCreateModal(true);
                           }}
@@ -177,7 +185,7 @@ export default function CourseManagement() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="px-6 py-12 text-center">
+                    <td colSpan="5" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -223,6 +231,10 @@ export default function CourseManagement() {
                   <p className="text-sm text-gray-900 font-mono">{viewingCourse.code}</p>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Department</label>
+                  <p className="text-sm text-gray-900">{departments.find(d => d.id === viewingCourse.departmentId)?.name || "No department assigned"}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
                   <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Description</label>
                   <p className="text-sm text-gray-900">{viewingCourse.description || "No description available"}</p>
                 </div>
@@ -266,6 +278,20 @@ export default function CourseManagement() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., Introduction to Computer Science"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                  <select
+                    required
+                    value={formData.departmentId}
+                    onChange={(e) => setFormData({...formData, departmentId: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map(dept => (
+                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>

@@ -146,7 +146,7 @@ export default function Home() {
 
 <li>
   <NavLink
-                  to="/admin"
+                  to="/admin/users"
                   end
                   className={({ isActive }) =>
                     [

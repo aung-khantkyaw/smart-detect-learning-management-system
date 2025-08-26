@@ -39,7 +39,7 @@ export default function LoginForm({ onSubmit }) {
       localStorage.setItem("userData", JSON.stringify(data.data));
       
      if(data.data.role === 'ADMIN'){
-        window.location.href = "/admin"
+        window.location.href = "/admin/departments";
      }else{
         window.location.href = "/dashboard";
       }

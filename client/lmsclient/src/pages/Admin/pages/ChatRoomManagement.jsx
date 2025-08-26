@@ -17,25 +17,27 @@ export default function ChatRoomManagement() {
   const fetchData = async () => {
     const token = localStorage.getItem("accessToken");
     try {
-      const [roomsRes, usersRes, coursesRes] = await Promise.all([
-        fetch("http://localhost:3000/api/chat-rooms", { headers: { Authorization: `Bearer ${token}` } }),
+      const [academicRes, courseRes, usersRes, coursesRes] = await Promise.all([
+        fetch("http://localhost:3000/api/chat-rooms/academic", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("http://localhost:3000/api/chat-rooms/course", { headers: { Authorization: `Bearer ${token}` } }),
         fetch("http://localhost:3000/api/users", { headers: { Authorization: `Bearer ${token}` } }),
         fetch("http://localhost:3000/api/courses", { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
-      const [roomsData, usersData, coursesData] = await Promise.all([
-        roomsRes.json(), usersRes.json(), coursesRes.json()
+      const [academicData, courseData, usersData, coursesData] = await Promise.all([
+        academicRes.ok ? academicRes.json() : Promise.resolve({ status: "error", data: [] }),
+        courseRes.ok ? courseRes.json() : Promise.resolve({ status: "error", data: [] }),
+        usersRes.ok ? usersRes.json() : Promise.resolve({ status: "error", data: [] }),
+        coursesRes.ok ? coursesRes.json() : Promise.resolve({ status: "error", data: [] })
       ]);
       
-      // Combine academic and course chat rooms into a single array
+      // Combine academic and course chat rooms with type info
       const allRooms = [];
-      if (roomsData.status === "success" && roomsData.data) {
-        if (Array.isArray(roomsData.data.academicChatRoom)) {
-          allRooms.push(...roomsData.data.academicChatRoom);
-        }
-        if (Array.isArray(roomsData.data.courseChatRoom)) {
-          allRooms.push(...roomsData.data.courseChatRoom);
-        }
+      if (academicData.status === "success" && Array.isArray(academicData.data)) {
+        allRooms.push(...academicData.data.map(room => ({ ...room, roomType: 'academic' })));
+      }
+      if (courseData.status === "success" && Array.isArray(courseData.data)) {
+        allRooms.push(...courseData.data.map(room => ({ ...room, roomType: 'course' })));
       }
       setChatRooms(allRooms);
       setUsers(Array.isArray(usersData) ? usersData : usersData.data || []);
@@ -47,12 +49,23 @@ export default function ChatRoomManagement() {
     }
   };
 
-  const fetchRoomMembers = async (roomId) => {
+  const fetchRoomMembers = async (room) => {
     const token = localStorage.getItem("accessToken");
     try {
-      const res = await fetch(`http://localhost:3000/api/chat-rooms/${roomId}/members`, {
+      const endpoint = room.roomType === 'academic' 
+        ? `http://localhost:3000/api/chat-rooms/academic/${room.id}/members`
+        : `http://localhost:3000/api/chat-rooms/course/${room.id}/members`;
+      
+      const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      if (!res.ok) {
+        console.error("Failed to fetch room members:", res.status, res.statusText);
+        setRoomMembers([]);
+        return;
+      }
+      
       const data = await res.json();
       setRoomMembers(data.status === "success" ? data.data : []);
     } catch (err) {
@@ -130,14 +143,14 @@ export default function ChatRoomManagement() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
-                          {courses.find(c => c.id === room.course_id)?.name || 'General'}
+                          {room.offeringId ? courses.find(c => c.id === room.courseId)?.title || 'Course Room' : 'Academic Room'}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          room.isPrivate ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                          room.roomType === 'course' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                         }`}>
-                          {room.isPrivate ? 'Private' : 'Public'}
+                          {room.roomType === 'course' ? 'Course' : 'Academic'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -154,7 +167,7 @@ export default function ChatRoomManagement() {
                         <button 
                           onClick={() => {
                             setSelectedRoom(room);
-                            fetchRoomMembers(room.id);
+                            fetchRoomMembers(room);
                             setShowMembersModal(true);
                           }}
                           className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"

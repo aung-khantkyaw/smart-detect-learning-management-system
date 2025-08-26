@@ -11,12 +11,9 @@ export default function CourseOfferingManagement() {
   const [editingOffering, setEditingOffering] = useState(null);
   const [viewingOffering, setViewingOffering] = useState(null);
   const [formData, setFormData] = useState({
-    course_id: "",
-    teacher_id: "",
-    academic_year_id: "",
-    semester: "FALL",
-    capacity: "",
-    isActive: true
+    courseId: "",
+    teacherId: "",
+    academicYearId: ""
   });
 
   useEffect(() => {
@@ -39,7 +36,8 @@ export default function CourseOfferingManagement() {
 
       setOfferings(offeringsData.status === "success" ? offeringsData.data : []);
       setCourses(coursesData.status === "success" ? coursesData.data : []);
-      setTeachers(Array.isArray(teachersData) ? teachersData : teachersData.data || []);
+      const allUsers = Array.isArray(teachersData) ? teachersData : teachersData.data || [];
+      setTeachers(allUsers.filter(user => user.role === 'TEACHER'));
       setAcademicYears(yearsData.status === "success" ? yearsData.data : []);
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -49,8 +47,8 @@ export default function CourseOfferingManagement() {
   };
 
   const filteredOfferings = offerings.filter(offering =>
-    courses.find(c => c.id === offering.course_id)?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    teachers.find(t => t.id === offering.teacher_id)?.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
+    courses.find(c => c.id === offering.courseId)?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    teachers.find(t => t.id === offering.teacherId)?.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = async (e) => {
@@ -76,7 +74,7 @@ export default function CourseOfferingManagement() {
       if (res.ok) {
         setShowCreateModal(false);
         fetchData();
-        setFormData({ course_id: "", teacher_id: "", academic_year_id: "", semester: "FALL", capacity: "", isActive: true });
+        setFormData({ courseId: "", teacherId: "", academicYearId: "" });
       } else {
         const error = await res.json();
         alert(error.message || "Operation failed");
@@ -106,7 +104,7 @@ export default function CourseOfferingManagement() {
           <button
             onClick={() => {
               setEditingOffering(null);
-              setFormData({ course_id: "", teacher_id: "", academic_year_id: "", semester: "FALL", capacity: "", isActive: true });
+              setFormData({ courseId: "", teacherId: "", academicYearId: "" });
               setShowCreateModal(true);
             }}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -144,9 +142,7 @@ export default function CourseOfferingManagement() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teacher</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Academic Year</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -156,31 +152,21 @@ export default function CourseOfferingManagement() {
                     <tr key={offering.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {courses.find(c => c.id === offering.course_id)?.name || 'Unknown Course'}
+                          {courses.find(c => c.id === offering.courseId)?.title || 'Unknown Course'}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {courses.find(c => c.id === offering.course_id)?.code || ''}
+                          {courses.find(c => c.id === offering.courseId)?.code || ''}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
-                          {teachers.find(t => t.id === offering.teacher_id)?.fullName || 'Unassigned'}
+                          {teachers.find(t => t.id === offering.teacherId)?.fullName || 'Unassigned'}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                          {offering.semester}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{offering.capacity || 'No limit'}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          offering.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {offering.isActive ? 'Active' : 'Inactive'}
-                        </span>
+                        <div className="text-sm text-gray-900">
+                          {academicYears.find(y => y.id === offering.academicYearId)?.name || 'Not set'}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-right space-x-2">
                         <button 
@@ -193,12 +179,9 @@ export default function CourseOfferingManagement() {
                           onClick={() => {
                             setEditingOffering(offering);
                             setFormData({
-                              course_id: offering.course_id || "",
-                              teacher_id: offering.teacher_id || "",
-                              academic_year_id: offering.academic_year_id || "",
-                              semester: offering.semester || "FALL",
-                              capacity: offering.capacity || "",
-                              isActive: offering.isActive
+                              courseId: offering.courseId || "",
+                              teacherId: offering.teacherId || "",
+                              academicYearId: offering.academicYearId || ""
                             });
                             setShowCreateModal(true);
                           }}
@@ -211,7 +194,7 @@ export default function CourseOfferingManagement() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
+                    <td colSpan="4" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -245,43 +228,31 @@ export default function CourseOfferingManagement() {
                     📚
                   </div>
                   <h3 className="text-xl font-semibold">
-                    {courses.find(c => c.id === viewingOffering.course_id)?.name || 'Course Offering'}
+                    {courses.find(c => c.id === viewingOffering.courseId)?.title || 'Course Offering'}
                   </h3>
                   <p className="text-white/80 text-sm">
-                    {courses.find(c => c.id === viewingOffering.course_id)?.code || ''}
+                    {courses.find(c => c.id === viewingOffering.courseId)?.code || ''}
                   </p>
                 </div>
               </div>
 
               <div className="p-6">
-                <div className="flex justify-center gap-4 mb-6">
-                  <span className="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">
-                    {viewingOffering.semester}
-                  </span>
-                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                    viewingOffering.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {viewingOffering.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
+
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between py-3 border-b border-gray-100">
                     <span className="text-gray-600">Teacher</span>
                     <span className="font-medium text-gray-900">
-                      {teachers.find(t => t.id === viewingOffering.teacher_id)?.fullName || 'Unassigned'}
+                      {teachers.find(t => t.id === viewingOffering.teacherId)?.fullName || 'Unassigned'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-3 border-b border-gray-100">
                     <span className="text-gray-600">Academic Year</span>
                     <span className="font-medium text-gray-900">
-                      {academicYears.find(y => y.id === viewingOffering.academic_year_id)?.name || 'Not set'}
+                      {academicYears.find(y => y.id === viewingOffering.academicYearId)?.name || 'Not set'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                    <span className="text-gray-600">Capacity</span>
-                    <span className="font-medium text-gray-900">{viewingOffering.capacity || 'No limit'}</span>
-                  </div>
+
                 </div>
                 
                 <div className="mt-6 pt-4 border-t border-gray-100">
@@ -320,13 +291,13 @@ export default function CourseOfferingManagement() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
                   <select
                     required
-                    value={formData.course_id}
-                    onChange={(e) => setFormData({...formData, course_id: e.target.value})}
+                    value={formData.courseId}
+                    onChange={(e) => setFormData({...formData, courseId: e.target.value})}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   >
                     <option value="">Select Course</option>
                     {courses.map(course => (
-                      <option key={course.id} value={course.id}>{course.name} ({course.code})</option>
+                      <option key={course.id} value={course.id}>{course.title} </option>
                     ))}
                   </select>
                 </div>
@@ -334,8 +305,8 @@ export default function CourseOfferingManagement() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Teacher</label>
                   <select
                     required
-                    value={formData.teacher_id}
-                    onChange={(e) => setFormData({...formData, teacher_id: e.target.value})}
+                    value={formData.teacherId}
+                    onChange={(e) => setFormData({...formData, teacherId: e.target.value})}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   >
                     <option value="">Select Teacher</option>
@@ -348,8 +319,8 @@ export default function CourseOfferingManagement() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Academic Year</label>
                   <select
                     required
-                    value={formData.academic_year_id}
-                    onChange={(e) => setFormData({...formData, academic_year_id: e.target.value})}
+                    value={formData.academicYearId}
+                    onChange={(e) => setFormData({...formData, academicYearId: e.target.value})}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   >
                     <option value="">Select Academic Year</option>
@@ -358,40 +329,7 @@ export default function CourseOfferingManagement() {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Semester</label>
-                  <select
-                    value={formData.semester}
-                    onChange={(e) => setFormData({...formData, semester: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                  >
-                    <option value="FALL">Fall</option>
-                    <option value="SPRING">Spring</option>
-                    <option value="SUMMER">Summer</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Capacity</label>
-                  <input
-                    type="number"
-                    value={formData.capacity}
-                    onChange={(e) => setFormData({...formData, capacity: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Leave empty for no limit"
-                  />
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
-                    Active
-                  </label>
-                </div>
+
                 
                 <div className="flex justify-end space-x-3 pt-4">
                   <button

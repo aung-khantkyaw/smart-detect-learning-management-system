@@ -10,8 +10,8 @@ export default function EnrollmentManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [formData, setFormData] = useState({
-    student_id: "",
-    course_offering_id: ""
+    studentId: "",
+    offeringId: ""
   });
 
   useEffect(() => {
@@ -35,7 +35,8 @@ export default function EnrollmentManagement() {
 
       setEnrollments(enrollmentsData.status === "success" ? enrollmentsData.data : []);
       setCourseOfferings(offeringsData.status === "success" ? offeringsData.data : []);
-      setStudents(Array.isArray(studentsData) ? studentsData : studentsData.data || []);
+      const allUsers = Array.isArray(studentsData) ? studentsData : studentsData.data || [];
+      setStudents(allUsers.filter(user => user.role === 'STUDENT'));
       setCourses(coursesData.status === "success" ? coursesData.data : []);
       setTeachers(Array.isArray(teachersData) ? teachersData : teachersData.data || []);
     } catch (err) {
@@ -46,12 +47,12 @@ export default function EnrollmentManagement() {
   };
 
   const filteredEnrollments = enrollments.filter(enrollment => {
-    const student = students.find(s => s.id === enrollment.student_id);
-    const offering = courseOfferings.find(o => o.id === enrollment.course_offering_id);
-    const course = courses.find(c => c.id === offering?.course_id);
+    const student = students.find(s => s.id === enrollment.studentId);
+    const offering = courseOfferings.find(o => o.id === enrollment.offeringId);
+    const course = courses.find(c => c.id === offering?.courseId);
     
     return student?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           course?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+           course?.title?.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   const handleEnroll = async (e) => {
@@ -59,19 +60,24 @@ export default function EnrollmentManagement() {
     const token = localStorage.getItem("accessToken");
     
     try {
+      const requestBody = {
+        studentIds: [formData.studentId],
+        offeringId: formData.offeringId
+      };
+      
       const res = await fetch("http://localhost:3000/api/enrollments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(requestBody)
       });
 
       if (res.ok) {
         setShowEnrollModal(false);
         fetchData();
-        setFormData({ student_id: "", course_offering_id: "" });
+        setFormData({ studentId: "", offeringId: "" });
       } else {
         const error = await res.json();
         alert(error.message || "Enrollment failed");
@@ -123,7 +129,7 @@ export default function EnrollmentManagement() {
           </div>
           <button
             onClick={() => {
-              setFormData({ student_id: "", course_offering_id: "" });
+              setFormData({ studentId: "", offeringId: "" });
               setShowEnrollModal(true);
             }}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -162,7 +168,6 @@ export default function EnrollmentManagement() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teacher</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrolled Date</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -170,10 +175,10 @@ export default function EnrollmentManagement() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredEnrollments.length > 0 ? (
                   filteredEnrollments.map((enrollment) => {
-                    const student = students.find(s => s.id === enrollment.student_id);
-                    const offering = courseOfferings.find(o => o.id === enrollment.course_offering_id);
-                    const course = courses.find(c => c.id === offering?.course_id);
-                    const teacher = teachers.find(t => t.id === offering?.teacher_id);
+                    const student = students.find(s => s.id === enrollment.studentId);
+                    const offering = courseOfferings.find(o => o.id === enrollment.offeringId);
+                    const course = courses.find(c => c.id === offering?.courseId);
+                    const teacher = teachers.find(t => t.id === offering?.teacherId);
                     
                     return (
                       <tr key={enrollment.id} className="hover:bg-gray-50 transition-colors">
@@ -189,20 +194,15 @@ export default function EnrollmentManagement() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{course?.name || 'Unknown Course'}</div>
+                          <div className="text-sm font-medium text-gray-900">{course?.title || 'Unknown Course'}</div>
                           <div className="text-sm text-gray-500">{course?.code || ''}</div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900">{teacher?.fullName || 'Unassigned'}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                            {offering?.semester || 'N/A'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
                           <div className="text-sm text-gray-900">
-                            {new Date(enrollment.createdAt).toLocaleDateString()}
+                            {new Date(enrollment.enrolledAt).toLocaleDateString()}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -218,7 +218,7 @@ export default function EnrollmentManagement() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
+                    <td colSpan="5" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
@@ -257,8 +257,8 @@ export default function EnrollmentManagement() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
                   <select
                     required
-                    value={formData.student_id}
-                    onChange={(e) => setFormData({...formData, student_id: e.target.value})}
+                    value={formData.studentId}
+                    onChange={(e) => setFormData({...formData, studentId: e.target.value})}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   >
                     <option value="">Select Student</option>
@@ -271,17 +271,17 @@ export default function EnrollmentManagement() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Course Offering</label>
                   <select
                     required
-                    value={formData.course_offering_id}
-                    onChange={(e) => setFormData({...formData, course_offering_id: e.target.value})}
+                    value={formData.offeringId}
+                    onChange={(e) => setFormData({...formData, offeringId: e.target.value})}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   >
                     <option value="">Select Course Offering</option>
                     {courseOfferings.map(offering => {
-                      const course = courses.find(c => c.id === offering.course_id);
-                      const teacher = teachers.find(t => t.id === offering.teacher_id);
+                      const course = courses.find(c => c.id === offering.courseId);
+                      const teacher = teachers.find(t => t.id === offering.teacherId);
                       return (
                         <option key={offering.id} value={offering.id}>
-                          {course?.name} ({offering.semester}) - {teacher?.fullName}
+                          {course?.title} - {teacher?.fullName}
                         </option>
                       );
                     })}
