@@ -33,6 +33,7 @@ import TMaterials from '../pages/Teacher/Course/components/Materials.jsx';
 import Announcementsteacher from '../pages/Teacher/Course/components/Annoucements.jsx';
 import TQuizzes from '../pages/Teacher/Course/components/Quizzes.jsx';
 
+
 const router = createBrowserRouter(
   [
       
@@ -71,6 +72,7 @@ const router = createBrowserRouter(
          { path: "announcements", element: <Announcements /> },
        ],
      },
+
    
   
    ],
