@@ -31,15 +31,12 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-
-
   const fetchChatRoom = async () => {
     const token = localStorage.getItem("accessToken");
-    const userData = JSON.parse(localStorage.getItem("userData") || '{}');
     
     try {
-      // Get student's course chat rooms
-      const res = await fetch(`http://localhost:3000/api/students/${userData.id}/course-chat-rooms`, {
+      // Get course chat rooms
+      const res = await fetch(`http://localhost:3000/api/chat-rooms/course`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -49,24 +46,16 @@ export default function Chat() {
       }
       
       const data = await res.json();
-      console.log("Student chat rooms response:", data);
+      console.log("Chat rooms response:", data);
       
-      if (data.status === "success" && data.data.length > 0) {
-        // Find chat room for this offering
-        const chatRoomData = data.data.find(item => {
-          const room = Array.isArray(item) ? item[0] : item;
-          return room && room.offeringId === id;
-        });
-        
-        if (chatRoomData) {
-          const room = Array.isArray(chatRoomData) ? chatRoomData[0] : chatRoomData;
-          console.log("Found chat room:", room);
-          setChatRoom(room);
-        } else {
-          console.log("No chat room found for offering:", id);
-        }
+      // Find chat room for this offering
+      const rooms = data.status === "success" ? data.data : [];
+      const room = rooms.find(r => r.offeringId === id);
+      
+      if (room) {
+        setChatRoom(room);
       } else {
-        console.log("No chat rooms available for student");
+        console.log("No chat room found for this offering");
       }
     } catch (err) {
       console.error("Error fetching chat room:", err);
@@ -102,19 +91,8 @@ export default function Chat() {
           messagesList = data.messages;
         }
         
-        // Transform messages to match expected format
-        const transformedMessages = messagesList.map(msg => ({
-          id: msg.id,
-          message: msg.message,
-          fileUrl: msg.fileUrl,
-          createdAt: msg.createdAt,
-          senderId: msg.sender?.id,
-          senderName: msg.sender?.fullName,
-          fullName: msg.sender?.fullName
-        }));
-        
-        console.log("Processed messages:", transformedMessages);
-        setMessages(transformedMessages);
+        console.log("Processed messages:", messagesList);
+        setMessages(messagesList);
       } else {
         console.error("Failed to fetch messages:", res.status, res.statusText);
       }

@@ -49,4 +49,3 @@ router.patch('/submissions/:submissionId/grade', requireAdminOrTeacher, gradeSub
 router.get('/:id/submissions', requireAdminOrTeacher, getAssignmentSubmissions);
 
 export default router;
-

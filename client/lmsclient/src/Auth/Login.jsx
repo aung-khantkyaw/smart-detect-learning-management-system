@@ -40,8 +40,12 @@ export default function LoginForm({ onSubmit }) {
       
      if(data.data.role === 'ADMIN'){
         window.location.href = "/admin/departments";
-     }else{
+     }
+     if(data.data.role == 'STUDENT'){
         window.location.href = "/dashboard";
+      }
+     if(data.data.role == 'TEACHER'){
+        window.location.href = "/teacher";
       }
     } else {
       setErrors(data.message || "Login failed");

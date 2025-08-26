@@ -408,6 +408,7 @@ export default function AdminOverview() {
   const [error, setError] = useState("");
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
+
   const [positions, setPositions] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
   const [majors, setMajors] = useState([]);
