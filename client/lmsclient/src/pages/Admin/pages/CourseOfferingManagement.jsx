@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { api } from "../../../lib/api";
 
 export default function CourseOfferingManagement() {
   const [offerings, setOfferings] = useState([]);
@@ -21,24 +22,19 @@ export default function CourseOfferingManagement() {
   }, []);
 
   const fetchData = async () => {
-    const token = localStorage.getItem("accessToken");
     try {
-      const [offeringsRes, coursesRes, teachersRes, yearsRes] = await Promise.all([
-        fetch("http://localhost:3000/api/course-offerings", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/courses", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/users?role=TEACHER", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/academic-years", { headers: { Authorization: `Bearer ${token}` } })
-      ]);
-
       const [offeringsData, coursesData, teachersData, yearsData] = await Promise.all([
-        offeringsRes.json(), coursesRes.json(), teachersRes.json(), yearsRes.json()
+        api.get("/course-offerings"),
+        api.get("/courses"),
+        api.get("/users?role=TEACHER"),
+        api.get("/academic-years")
       ]);
 
-      setOfferings(offeringsData.status === "success" ? offeringsData.data : []);
-      setCourses(coursesData.status === "success" ? coursesData.data : []);
-      const allUsers = Array.isArray(teachersData) ? teachersData : teachersData.data || [];
-      setTeachers(allUsers.filter(user => user.role === 'TEACHER'));
-      setAcademicYears(yearsData.status === "success" ? yearsData.data : []);
+      setOfferings(Array.isArray(offeringsData) ? offeringsData : offeringsData?.data || []);
+      setCourses(Array.isArray(coursesData) ? coursesData : coursesData?.data || []);
+      const teacherUsers = Array.isArray(teachersData) ? teachersData : teachersData?.data || [];
+      setTeachers(teacherUsers.filter(user => user.role === 'TEACHER'));
+      setAcademicYears(Array.isArray(yearsData) ? yearsData : yearsData?.data || []);
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
@@ -53,35 +49,19 @@ export default function CourseOfferingManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("accessToken");
     
     try {
-      const url = editingOffering 
-        ? `http://localhost:3000/api/course-offerings/${editingOffering.id}`
-        : "http://localhost:3000/api/course-offerings";
-      
-      const method = editingOffering ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (res.ok) {
-        setShowCreateModal(false);
-        fetchData();
-        setFormData({ courseId: "", teacherId: "", academicYearId: "" });
+      if (editingOffering) {
+        await api.put(`/course-offerings/${editingOffering.id}`, formData);
       } else {
-        const error = await res.json();
-        alert(error.message || "Operation failed");
+        await api.post("/course-offerings", formData);
       }
+      setShowCreateModal(false);
+      fetchData();
+      setFormData({ courseId: "", teacherId: "", academicYearId: "" });
     } catch (err) {
       console.error(err);
-      alert("Operation failed");
+      alert(err.message || "Operation failed");
     }
   };
 
@@ -98,7 +78,7 @@ export default function CourseOfferingManagement() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">📚 Course Offering Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Course Offering Management</h1>
             <p className="text-gray-600">Manage course offerings and teacher assignments</p>
           </div>
           <button

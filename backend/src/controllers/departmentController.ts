@@ -71,6 +71,34 @@ export const deleteDepartment = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
+    console.log("Attempting to delete department with ID:", id);
+    // Prevent deletion if related rows exist to avoid FK/NOT NULL violations
+    const hasCourse = await db
+      .select({ id: courses.id })
+      .from(courses)
+      .where(eq(courses.departmentId, id))
+      .limit(1);
+    if (hasCourse.length > 0) {
+      return res.status(409).json({
+        status: 'error',
+        message:
+          'Cannot delete department: one or more courses are assigned to this department. Reassign or delete those courses first.'
+      });
+    }
+
+    const hasUser = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.departmentId, id))
+      .limit(1);
+    if (hasUser.length > 0) {
+      return res.status(409).json({
+        status: 'error',
+        message:
+          'Cannot delete department: one or more users/teachers are assigned to this department. Reassign those users first.'
+      });
+    }
+
     const deletedDepartment = await db.delete(departments)
       .where(eq(departments.id, id))
       .returning();

@@ -4,12 +4,37 @@
 // - Parses JSON, unwraps { status, data } shapes
 // - On 401, clears auth and redirects to /login
 
-const BASE_URL =
-  typeof import.meta !== "undefined" &&
-  import.meta.env &&
-  import.meta.env.VITE_API_URL
-    ? import.meta.env.VITE_API_URL.replace(/\/$/, "")
-    : "http://localhost:3000/api";
+function resolveBaseUrl() {
+  const hasVite = typeof import.meta !== "undefined" && import.meta.env;
+  const raw = hasVite ? import.meta.env.VITE_API_URL : undefined;
+
+  if (raw && typeof raw === "string") {
+    // Support comma-separated list for multi-environment setups
+    const candidates = raw
+      .split(",")
+      .map((s) => s.trim().replace(/\/$/, ""))
+      .filter(Boolean);
+
+    if (candidates.length === 1) return candidates[0];
+
+    if (typeof window !== "undefined" && window.location) {
+      const host = window.location.hostname;
+      const match = candidates.find((u) => {
+        try {
+          const url = new URL(u);
+          return url.hostname === host;
+        } catch {
+          return false;
+        }
+      });
+      return match || candidates[0];
+    }
+    return candidates[0];
+  }
+  return "http://localhost:3000/api";
+}
+
+const BASE_URL = resolveBaseUrl();
 
 function getToken() {
   try {
@@ -82,5 +107,6 @@ export const api = {
     request(path, { ...options, method: "PUT", body }),
   patch: (path, body, options) =>
     request(path, { ...options, method: "PATCH", body }),
-  del: (path, options) => request(path, { ...options, method: "DELETE" }),
+  del: (path, body, options) =>
+    request(path, { ...options, method: "DELETE", body }),
 };

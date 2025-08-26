@@ -6,7 +6,7 @@ import {
   updateMaterial,
   deleteMaterial
 } from '../controllers/materialController';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requireAdminOrTeacher } from '../middleware/auth';
 
 const router = Router();
 
@@ -20,12 +20,12 @@ router.get('/offering/:offeringId', getMaterials);
 router.get('/:id', getMaterial);
 
 // Create a new material
-router.post('/offering/:offeringId', createMaterial);
+router.post('/offering/:offeringId', requireAdminOrTeacher, createMaterial);
 
 // Update a material
-router.put('/:id', updateMaterial);
+router.put('/:id', requireAdminOrTeacher, updateMaterial);
 
 // Delete a material
-router.delete('/:id', deleteMaterial);
+router.delete('/:id', requireAdminOrTeacher, deleteMaterial);
 
 export default router;

@@ -69,6 +69,20 @@ export const deletePosition = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
+    // Prevent deletion if any users/teachers are assigned to this position
+    const hasUsers = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.positionId, id))
+      .limit(1);
+    if (hasUsers.length > 0) {
+      return res.status(409).json({
+        status: 'error',
+        message:
+          'Cannot delete position: one or more users/teachers are assigned to this position. Reassign those users first.'
+      });
+    }
+
     const deletedCount = await db.delete(positions).where(eq(positions.id, id)).returning();
 
     if (deletedCount.length === 0) {

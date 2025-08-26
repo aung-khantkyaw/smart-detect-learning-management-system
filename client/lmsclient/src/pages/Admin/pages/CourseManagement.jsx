@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { api } from "../../../lib/api";
 
 export default function CourseManagement() {
   const [courses, setCourses] = useState([]);
@@ -20,19 +21,15 @@ export default function CourseManagement() {
   }, []);
 
   const fetchCourses = async () => {
-    const token = localStorage.getItem("accessToken");
     try {
-      const [coursesRes, departmentsRes] = await Promise.all([
-        fetch("http://localhost:3000/api/courses", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:3000/api/departments", { headers: { Authorization: `Bearer ${token}` } })
-      ]);
-      
       const [coursesData, departmentsData] = await Promise.all([
-        coursesRes.json(), departmentsRes.json()
+        api.get("/courses"),
+        api.get("/departments")
       ]);
-      
-      if (coursesData.status === "success") setCourses(coursesData.data);
-      if (departmentsData.status === "success") setDepartments(departmentsData.data);
+      const courseList = Array.isArray(coursesData) ? coursesData : coursesData?.data || [];
+      const deptList = Array.isArray(departmentsData) ? departmentsData : departmentsData?.data || [];
+      setCourses(courseList);
+      setDepartments(deptList);
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
@@ -47,35 +44,19 @@ export default function CourseManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("accessToken");
     
     try {
-      const url = editingCourse 
-        ? `http://localhost:3000/api/courses/${editingCourse.id}`
-        : "http://localhost:3000/api/courses";
-      
-      const method = editingCourse ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (res.ok) {
-        setShowCreateModal(false);
-        fetchCourses();
-        setFormData({ code: "", title: "", description: "", departmentId: "" });
+      if (editingCourse) {
+        await api.put(`/courses/${editingCourse.id}`, formData);
       } else {
-        const error = await res.json();
-        alert(error.message || "Operation failed");
+        await api.post("/courses", formData);
       }
+      setShowCreateModal(false);
+      fetchCourses();
+      setFormData({ code: "", title: "", description: "", departmentId: "" });
     } catch (err) {
       console.error(err);
-      alert("Operation failed");
+      alert(err.message || "Operation failed");
     }
   };
 
@@ -92,7 +73,7 @@ export default function CourseManagement() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">📚 Course Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Course Management</h1>
             <p className="text-gray-600">Manage courses and curriculum</p>
           </div>
           <button
