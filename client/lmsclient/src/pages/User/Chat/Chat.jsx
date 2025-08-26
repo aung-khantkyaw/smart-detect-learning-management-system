@@ -1,32 +1,51 @@
-import React from 'react'
-import { Link } from 'react-router';
-export default function Chat() {
-    const courses = [
-    { id: "db101", title: "Introduction to Databases" },
-    { id: "react201", title: "Web Development with React" },
-    { id: "ai301", title: "AI & Machine Learning Basics" },
-  ];
+import React, { useEffect, useState } from 'react';
+
+export default function CourseChatRooms() {
+  const [chatRooms, setChatRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchChatRooms = async () => {
+      const token = localStorage.getItem("accessToken");
+      const userData = JSON.parse(localStorage.getItem("userData") || '{}');
+      if (!token || !userData.id) {
+        setChatRooms([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/students/${userData.id}/course-chat-rooms`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          setChatRooms(data.data);
+        } else {
+          setChatRooms([]);
+        }
+      } catch (err) {
+        setChatRooms([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChatRooms();
+  }, []);
+
+  if (loading) return <div>Loading chat rooms...</div>;
 
   return (
-       <div className="p-6  min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">💬 Course Chats</h1>
-      <ul className="space-y-4">
-        {courses.map((c) => (
-          <li
-            key={c.id}
-            className="p-4 bg-white shadow rounded flex justify-between items-center"
-          >
-            <span>{c.title}</span>
-            <Link
-              to={`/dashboard/chat/${c.id}`}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700"
-            >
-              Enter Chat
-            </Link>
-          </li>
+    <div>
+      <h2>Course Chat Rooms</h2>
+      <ul>
+        {chatRooms.map(room => (
+          <li key={room.id}>{room.name}</li>
         ))}
       </ul>
     </div>
-
-  )
+  );
 }

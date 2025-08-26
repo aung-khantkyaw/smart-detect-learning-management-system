@@ -1,34 +1,54 @@
-import React from 'react'
-import { useState } from "react";
+import React, { useState, useEffect } from 'react'
+
 export default function Notifications() {
-    
- const dummyNotifications = [
-    {
-      id: 1,
-      type: "assignment",
-      title: "Assignment Due",
-      message: "Assignment 2 for Web Development is due on Aug 30.",
-      date: "2025-08-20",
-      read: false,
-    },
-    {
-      id: 2,
-      type: "announcement",
-      title: "New Announcement",
-      message: "AI & Machine Learning lecture moved to Friday.",
-      date: "2025-08-18",
-      read: true,
-    },
-    {
-      id: 3,
-      type: "quiz",
-      title: "Quiz Result Posted",
-      message: "Your score for Database Quiz 1 is available.",
-      date: "2025-08-15",
-      read: false,
-    },
-  ];
-  const [notifications, setNotifications] = useState(dummyNotifications);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const token = localStorage.getItem("accessToken");
+      const userData = JSON.parse(localStorage.getItem("userData") || '{}');
+      
+      if (!token || !userData.id) {
+        // Fallback to dummy data if no user
+        setNotifications([
+          {
+            id: 1,
+            type: "system",
+            title: "Welcome!",
+            message: "Welcome to the LMS notification system.",
+            date: new Date().toISOString().split('T')[0],
+            read: false,
+          }
+        ]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/students/${userData.id}/notifications`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+        
+        const data = await res.json();
+        if (data.status === "success") {
+          setNotifications(data.data);
+        } else {
+          setNotifications([]);
+        }
+      } catch (err) {
+        console.error("Error fetching notifications:", err);
+        setNotifications([]);
+      } finally {
+        setLoading(false);
+      }
+
+    };
+
+    fetchNotifications();
+  }, []);
 
   const markAsRead = (id) => {
     setNotifications((prev) =>
@@ -38,6 +58,14 @@ export default function Notifications() {
     );
   };
   // Mark notification as read
+
+  if (loading) {
+    return (
+      <div className="p-6 min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading notifications...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 min-h-screen">
