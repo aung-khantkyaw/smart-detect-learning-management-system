@@ -15,8 +15,8 @@ export const main = (req: Request, res: Response) => {
 };
 
 export const registrationUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-
+  const { email, password, role, fullName, department_id, position_id, major_id, academic_year_id, studentNumber } = req.body;
+  
   try {
     const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
     if (existingUser.length > 0) {
@@ -26,18 +26,18 @@ export const registrationUser = async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = {
-      username: req.body.username || email.split('@')[0],
-      email,
       password: hashedPassword,
-      role: req.body.role,
-      fullName: req.body.fullName,
+      username: req.body.username || email.split('@')[0],
+      email: email,
+      role: role,
+      fullName: fullName,
 
-      department_id: req.body.department_id,
-      position_id: req.body.position_id,
+      departmentId: department_id,
+      positionId: position_id,
 
-      major_id: req.body.major_id,
-      academic_year_id: req.body.academic_year_id,
-      studentNumber: req.body.studentNumber,
+      majorId: major_id,
+      academicYearId: academic_year_id,
+      studentNumber: studentNumber,   
     };
 
     const newUser = await db.insert(users).values(user).returning();

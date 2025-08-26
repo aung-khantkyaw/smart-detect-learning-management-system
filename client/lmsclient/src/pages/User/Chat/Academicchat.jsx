@@ -1,14 +1,52 @@
-import React from 'react'
-import { useState } from "react";
+import React, { useState, useEffect } from 'react'
+
 export default function Academicchat() {
-
-   const [messages, setMessages] = useState([
-    { id: 1, sender: "Admin", text: "🎉 Welcome to the Academic Year 2025 chat room!" },
-    { id: 2, sender: "Alice", text: "Hi everyone 👋" },
-    { id: 3, sender: "Bob", text: "Good luck with the new semester 🚀" },
-  ]);
-
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [chatRoom, setChatRoom] = useState(null);
+
+  useEffect(() => {
+    const fetchAcademicChatRoom = async () => {
+      const token = localStorage.getItem("accessToken");
+      const userData = JSON.parse(localStorage.getItem("userData") || '{}');
+      
+      if (!token || !userData.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/students/${userData.id}/academic-chat`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+        
+        const data = await res.json();
+        if (data.status === "success" && data.data.length > 0) {
+          const room = data.data[0][0];
+          setChatRoom(room);
+          setMessages([
+            { id: 1, sender: "System", text: `🎉 Welcome to ${room?.name || 'Academic Year Chat'}!` },
+          ]);
+        } else {
+          setMessages([
+            { id: 1, sender: "System", text: "🎉 Welcome to Academic Year Chat!" },
+          ]);
+        }
+      } catch (err) {
+        console.error("Error fetching academic chat room:", err);
+        setMessages([
+          { id: 1, sender: "System", text: "🎉 Welcome to Academic Year Chat!" },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAcademicChatRoom();
+  }, []);
 
   const sendMessage = () => {
     if (newMessage.trim() === "") return;
@@ -20,9 +58,17 @@ export default function Academicchat() {
   };
 
 
+  if (loading) {
+    return (
+      <div className="p-6 min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading academic chat...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6  min-h-screen flex flex-col">
-      <h1 className="text-2xl font-bold mb-6">🏫 Academic Year Chat</h1>
+      <h1 className="text-2xl font-bold mb-6">🏫 {chatRoom?.name || 'Academic Year Chat'}</h1>
 
       {/* Chat Box */}
       <div className="flex-1 bg-white p-4 rounded shadow overflow-y-auto mb-4 space-y-3">
@@ -42,7 +88,7 @@ export default function Academicchat() {
           placeholder="Type your message..."
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
         />
         <button
           onClick={sendMessage}

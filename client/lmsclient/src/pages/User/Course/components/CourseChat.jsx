@@ -1,14 +1,52 @@
-import React,{ useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 
 export default function Chat() {
-
+  const { id: courseId } = useParams();
   const [newMessage, setNewMessage] = useState("");
-    const [messages, setMessages] = useState([
-    { id: 1, user: "Instructor", text: "Welcome to CST-4211 discussion!" },
-    { id: 2, user: "Student A", text: "Hi everyone, excited for this course." },
-    { id: 3, user: "Student B", text: "Can someone explain parallel algorithms?" },
-    { id: 4, user: "Instructor", text: "Sure! We will cover that in next lecture." },
-  ]);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchChatRooms = async () => {
+      const token = localStorage.getItem("accessToken");
+      const userData = JSON.parse(localStorage.getItem("userData") || '{}');
+      
+      if (!token || !userData.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/students/${userData.id}/course-chat-rooms`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+        
+        const data = await res.json();
+        if (data.status === "success" && data.data.length > 0) {
+          const chatRoom = data.data[0][0];
+          setMessages([
+            { id: 1, user: "System", text: `Welcome to ${chatRoom?.name || 'course chat'}!` },
+          ]);
+        } else {
+          setMessages([
+            { id: 1, user: "System", text: "Welcome to course chat!" },
+          ]);
+        }
+      } catch (err) {
+        console.error("Error fetching chat rooms:", err);
+        setMessages([
+          { id: 1, user: "System", text: "Welcome to course chat!" },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChatRooms();
+  }, [courseId]);
 
   const handleSend = () => {
     if (newMessage.trim() === "") return;
@@ -18,6 +56,14 @@ export default function Chat() {
     ]);
     setNewMessage("");
   };
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto p-6 flex items-center justify-center h-[80vh]">
+        <div className="text-lg">Loading chat...</div>
+      </div>
+    );
+  }
+
   return (
      <div className="max-w-3xl mx-auto p-6 flex flex-col h-[80vh]">
      
