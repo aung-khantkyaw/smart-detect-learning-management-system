@@ -7,7 +7,8 @@ import {
   quizSubmissions, 
   quizAnswers, 
   courseOfferings, 
-  users 
+  users,
+  enrollments 
 } from '../db/schema';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -338,5 +339,70 @@ export const getQuizSubmissions = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching quiz submissions:', error);
     res.status(500).json({ error: 'Failed to fetch quiz submissions' });
+  }
+};
+
+// Get quizzes for enrolled student by course ID
+export const getQuizzesForStudent = async (req: Request, res: Response) => {
+  try {
+    const { courseId } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    // Find course offering for this course
+    const offering = await db
+      .select({ id: courseOfferings.id })
+      .from(courseOfferings)
+      .where(eq(courseOfferings.courseId, courseId))
+      .limit(1);
+
+    if (offering.length === 0) {
+      return res.status(404).json({ error: 'Course offering not found' });
+    }
+
+    // Get quizzes for the offering
+    const quizzesList = await db
+      .select({
+        id: quizzes.id,
+        title: quizzes.title,
+        instructions: quizzes.instructions,
+        openAt: quizzes.openAt,
+        closeAt: quizzes.closeAt,
+        createdAt: quizzes.createdAt
+      })
+      .from(quizzes)
+      .where(eq(quizzes.offeringId, offering[0].id))
+      .orderBy(desc(quizzes.createdAt));
+
+    res.json(quizzesList);
+  } catch (error) {
+    console.error('Error fetching quizzes for student:', error);
+    res.status(500).json({ error: 'Failed to fetch quizzes' });
+  }
+};
+
+// Get user's quiz submissions
+export const getUserSubmissions = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    
+    const userSubmissions = await db
+      .select({
+        id: quizSubmissions.id,
+        quizId: quizSubmissions.quizId,
+        submittedAt: quizSubmissions.submittedAt,
+        score: quizSubmissions.score,
+        status: quizSubmissions.status
+      })
+      .from(quizSubmissions)
+      .where(eq(quizSubmissions.studentId, userId));
+
+    res.json(userSubmissions);
+  } catch (error) {
+    console.error('Error fetching user submissions:', error);
+    res.status(500).json({ error: 'Failed to fetch user submissions' });
   }
 };

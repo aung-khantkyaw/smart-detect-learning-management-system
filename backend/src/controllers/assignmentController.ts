@@ -322,3 +322,66 @@ export const gradeSubmission = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to grade submission' });
   }
 };
+
+// Get all submissions for a student
+export const getStudentAllSubmissions = async (req: Request, res: Response) => {
+  try {
+    const { studentId } = req.params;
+
+    const submissions = await db
+      .select({
+        id: assignmentSubmissions.id,
+        assignmentId: assignmentSubmissions.assignmentId,
+        submittedAt: assignmentSubmissions.submittedAt,
+        fileUrl: assignmentSubmissions.fileUrl,
+        textAnswer: assignmentSubmissions.textAnswer,
+        aiScore: assignmentSubmissions.aiScore,
+        status: assignmentSubmissions.status,
+        attemptNumber: assignmentSubmissions.attemptNumber
+      })
+      .from(assignmentSubmissions)
+      .where(eq(assignmentSubmissions.studentId, studentId))
+      .orderBy(desc(assignmentSubmissions.submittedAt));
+
+    res.json(submissions);
+  } catch (error) {
+    console.error('Error fetching student submissions:', error);
+    res.status(500).json({ error: 'Failed to fetch student submissions' });
+  }
+};
+
+// Get assignments for student by course ID
+export const getAssignmentsForStudent = async (req: Request, res: Response) => {
+  try {
+    const { courseId } = req.params;
+
+    // Find course offering for this course
+    const offering = await db
+      .select({ id: courseOfferings.id })
+      .from(courseOfferings)
+      .where(eq(courseOfferings.courseId, courseId))
+      .limit(1);
+
+    if (offering.length === 0) {
+      return res.status(404).json({ error: 'Course offering not found' });
+    }
+
+    // Get assignments for the offering
+    const assignmentsList = await db
+      .select({
+        id: assignments.id,
+        title: assignments.title,
+        description: assignments.description,
+        dueAt: assignments.dueAt,
+        createdAt: assignments.createdAt
+      })
+      .from(assignments)
+      .where(eq(assignments.offeringId, offering[0].id))
+      .orderBy(desc(assignments.createdAt));
+
+    res.json(assignmentsList);
+  } catch (error) {
+    console.error('Error fetching assignments for student:', error);
+    res.status(500).json({ error: 'Failed to fetch assignments' });
+  }
+};

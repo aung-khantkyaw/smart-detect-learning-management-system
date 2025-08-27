@@ -16,47 +16,41 @@ export default function Materials() {
     console.log("ID from params:", id);
     
     try {
-      // Try direct fetch first - maybe id is already offering ID
-      const directRes = await fetch(`http://localhost:3000/api/materials/offering/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (directRes.ok) {
-        const directData = await directRes.json();
-        console.log("Direct materials data:", directData);
-        
-        if (Array.isArray(directData)) {
-          setMaterials(directData);
-          return;
-        }
-      }
-      
-      // If direct fetch fails, try finding offering by course ID
+      // Get course offerings to find the offering ID for this course
       const offeringsRes = await fetch(`http://localhost:3000/api/course-offerings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       const offeringsData = await offeringsRes.json();
-      console.log("Offerings data:", offeringsData);
       
       if (offeringsData.status === "success") {
+        // Find offering for this course
         const offering = offeringsData.data.find(o => o.courseId === id);
-        console.log("Found offering:", offering);
         
         if (offering) {
+          // Fetch materials using offering ID
           const materialsRes = await fetch(`http://localhost:3000/api/materials/offering/${offering.id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           
           if (materialsRes.ok) {
             const materialsData = await materialsRes.json();
-            console.log("Materials data:", materialsData);
             
             if (Array.isArray(materialsData)) {
               setMaterials(materialsData);
+            } else if (materialsData.status === "success" && Array.isArray(materialsData.data)) {
+              setMaterials(materialsData.data);
+            } else {
+              setMaterials([]);
             }
+          } else {
+            setMaterials([]);
           }
+        } else {
+          setMaterials([]);
         }
+      } else {
+        setMaterials([]);
       }
     } catch (err) {
       console.error("Error fetching materials:", err);

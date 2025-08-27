@@ -7,7 +7,9 @@ import {
   deleteQuiz,
   submitQuiz,
   getQuizSubmissions,
-  getAllQuizzes
+  getAllQuizzes,
+  getQuizzesForStudent,
+  getUserSubmissions
 } from '../controllers/quizController';
 import { authenticateToken, requireAdminOrTeacher, requireStudent } from '../middleware/auth';
 
@@ -39,5 +41,11 @@ router.post('/:id/submit', requireStudent, submitQuiz);
 
 // Get quiz submissions (teacher)
 router.get('/:id/submissions', requireAdminOrTeacher, getQuizSubmissions);
+
+// Get quizzes for enrolled student by course ID
+router.get('/course/:courseId', getQuizzesForStudent);
+
+// Get user's quiz submissions
+router.get('/submissions/user/:userId', getUserSubmissions);
 
 export default router;
