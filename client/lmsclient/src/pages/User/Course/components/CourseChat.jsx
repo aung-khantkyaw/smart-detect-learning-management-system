@@ -32,7 +32,8 @@ export default function Chat() {
 
   const fetchChatRoom = async () => {
     const token = localStorage.getItem("accessToken");
-    const userData = JSON.parse(localStorage.getItem("userData") || '{}');
+    
+    console.log("Course ID:", id);
     
     try {
       // Get student's enrollments to find the correct offering
@@ -110,6 +111,8 @@ export default function Chat() {
     if (!chatRoom) return;
     
     const token = localStorage.getItem("accessToken");
+    
+    console.log("Fetching messages for chat room:", chatRoom.id);
     
     try {
       const res = await fetch(`http://localhost:3000/api/chat-rooms/COURSE/${chatRoom.id}/messages`, {

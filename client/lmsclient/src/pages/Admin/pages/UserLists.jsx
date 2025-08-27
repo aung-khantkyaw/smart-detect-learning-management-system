@@ -306,7 +306,25 @@ export default function UserList() {
                                   }}
                                   className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                 >
-                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                  <svg
+                                    className="w-4 h-4 mr-2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                    />
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                    />
+                                  </svg>
                                   View
                                 </button>
                                 <button
@@ -321,7 +339,8 @@ export default function UserList() {
                                       department_id: u.department_id || "",
                                       position_id: u.position_id || "",
                                       major_id: u.major_id || "",
-                                      academic_year_id: u.academic_year_id || "",
+                                      academic_year_id:
+                                        u.academic_year_id || "",
                                       studentNumber: u.studentNumber || "",
                                     });
                                     setShowCreateModal(true);
@@ -329,7 +348,19 @@ export default function UserList() {
                                   }}
                                   className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                 >
-                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z" /></svg>
+                                  <svg
+                                    className="w-4 h-4 mr-2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"
+                                    />
+                                  </svg>
                                   Edit
                                 </button>
                                 <button
@@ -338,9 +369,25 @@ export default function UserList() {
                                     handleToggleActive(u);
                                     setActionMenuOpenId(null);
                                   }}
-                                  className={`flex items-center w-full text-left px-3 py-2 text-sm ${u.isActive ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
+                                  className={`flex items-center w-full text-left px-3 py-2 text-sm ${
+                                    u.isActive
+                                      ? "text-orange-600 hover:bg-orange-50"
+                                      : "text-green-600 hover:bg-green-50"
+                                  }`}
                                 >
-                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                                  <svg
+                                    className="w-4 h-4 mr-2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                                    />
+                                  </svg>
                                   {u.isActive ? "Ban" : "Unban"}
                                 </button>
                                 <button
@@ -353,7 +400,19 @@ export default function UserList() {
                                   }}
                                   className="flex items-center w-full text-left px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
                                 >
-                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                  <svg
+                                    className="w-4 h-4 mr-2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
                                   Delete
                                 </button>
                               </div>
@@ -547,6 +606,47 @@ export default function UserList() {
 
               <form onSubmit={handleSubmit} className="p-6">
                 <div className="space-y-6">
+                  {/* Role Selection */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-800 mb-3">User Role</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        formData.role === "STUDENT" 
+                          ? "border-blue-500 bg-blue-50 text-blue-700" 
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}>
+                        <input
+                          type="radio"
+                          value="STUDENT"
+                          checked={formData.role === "STUDENT"}
+                          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                          className="sr-only"
+                        />
+                        <div className="text-center w-full">
+                          <div className="text-2xl mb-1">🎓</div>
+                          <div className="font-medium text-sm">Student</div>
+                        </div>
+                      </label>
+                      <label className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        formData.role === "TEACHER" 
+                          ? "border-blue-500 bg-blue-50 text-blue-700" 
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}>
+                        <input
+                          type="radio"
+                          value="TEACHER"
+                          checked={formData.role === "TEACHER"}
+                          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                          className="sr-only"
+                        />
+                        <div className="text-center w-full">
+                          <div className="text-2xl mb-1">👨‍🏫</div>
+                          <div className="font-medium text-sm">Teacher</div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Basic Information */}
                   <div>
                     <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
@@ -565,7 +665,7 @@ export default function UserList() {
                       </svg>
                       Basic Information
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Full Name
@@ -603,7 +703,7 @@ export default function UserList() {
                             }}
                             pattern="^[A-Za-z0-9._-]+$"
                             title="Allowed: letters, numbers, dot, underscore, hyphen"
-                            className="max-w-[170px] px-4 py-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                            className="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                             placeholder="username"
                           />
                           <span className="inline-flex items-center px-3 border border-l-0 border-gray-300 bg-gray-50 text-gray-700 rounded-r-lg text-sm whitespace-nowrap">
@@ -636,21 +736,6 @@ export default function UserList() {
                               : "Enter password"
                           }
                         />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Role
-                        </label>
-                        <select
-                          value={formData.role}
-                          onChange={(e) =>
-                            setFormData({ ...formData, role: e.target.value })
-                          }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
-                        >
-                          <option value="STUDENT">Student</option>
-                          <option value="TEACHER">Teacher</option>
-                        </select>
                       </div>
                     </div>
                   </div>
@@ -761,12 +846,20 @@ export default function UserList() {
                               inputMode="numeric"
                               pattern="^[0-9]+$"
                               title="Digits only"
-                              value={(formData.studentNumber || "").replace(/^sdlms-/, "")}
+                              value={(formData.studentNumber || "").replace(
+                                /^sdlms-/,
+                                ""
+                              )}
                               onChange={(e) => {
-                                const digits = e.target.value.replace(/\D/g, "");
+                                const digits = e.target.value.replace(
+                                  /\D/g,
+                                  ""
+                                );
                                 setFormData({
                                   ...formData,
-                                  studentNumber: digits ? `sdlms-${digits}` : "",
+                                  studentNumber: digits
+                                    ? `sdlms-${digits}`
+                                    : "",
                                 });
                               }}
                               className="w-full px-4 py-3 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"

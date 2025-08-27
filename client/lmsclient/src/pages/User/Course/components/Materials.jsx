@@ -13,6 +13,8 @@ export default function Materials() {
   const fetchMaterials = async () => {
     const token = localStorage.getItem("accessToken");
     
+    console.log("ID from params:", id);
+    
     try {
       // Get course offerings to find the offering ID for this course
       const offeringsRes = await fetch(`http://localhost:3000/api/course-offerings`, {

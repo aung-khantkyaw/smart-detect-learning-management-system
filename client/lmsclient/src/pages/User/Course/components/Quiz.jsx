@@ -12,7 +12,6 @@ export default function Quiz() {
   const [showResults, setShowResults] = useState(false);
   const [submissions, setSubmissions] = useState([]);
 
-
   useEffect(() => {
     fetchQuizzes();
     fetchSubmissions();
@@ -143,8 +142,6 @@ export default function Quiz() {
     setQuizStarted(false);
     setShowResults(false);
   };
-
-
 
   if (loading) {
     return (
