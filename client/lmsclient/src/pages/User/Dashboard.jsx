@@ -1,224 +1,168 @@
+import React from "react";
+import { Outlet, NavLink, useLocation } from "react-router-dom";
+import { BookOpen, User, Bell, LogOut, Brain, MessageCircle, Users } from "lucide-react";
 
-import React ,{useState ,useEffect} from 'react'
-
-import { NavLink } from "react-router-dom";
-
-import { Link, Outlet ,useLocation } from "react-router-dom";
-export default function Home() {
+export default function StudentDashboard() {
   const location = useLocation();
 
-  const handleLogout = () => {
-  // Clear localStorage
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("user");
-
-  // Redirect to login page
-  window.location.href = "/login";
-};
-    const [courses, setCourses] = useState([]);
-
-  
   return (
-    <>
-    <div>   
-      {/* logo navigation container */}
-        
-
-
-           <div className="">
-       
-<aside id="cta-button-sidebar" className="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0" aria-label="Sidebar">
-   <div className="h-full px-3 py-4 overflow-y-auto  border-r-4 ">
-      <ul className="space-y-2 font-medium  ">
-        <li>
-           <div className="flex items-center space-x-3">
-  <p className="mb-6 ml-4 text-xl font-bold text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text">
-    SD - LMS
-  </p>
-</div>
-        </li>
-<li>
-  <NavLink
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-purple-50">
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        <div className="w-72 bg-white/80 backdrop-blur-md border-r border-gray-200 shadow-lg">
+          {/* Logo Section */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-xl">
+                <Brain className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Smart LMS</h2>
+                <p className="text-sm text-gray-600">Student Portal</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Navigation */}
+          <nav className="mt-8 px-4">
+            <ul className="space-y-2">
+              <li>
+                <NavLink
                   to="/dashboard"
                   end
                   className={({ isActive }) =>
-                    [
-                      "flex items-center p-2 transition-colors duration-200 rounded-lg group",
-                      (isActive || location.pathname === "/dashboard")
-                        ? "bg-gray-700 text-white"
-                        : "hover:bg-gray-700 text-gray-600"
-                    ].join(" ")
+                    `group flex items-center p-3 rounded-xl transition-all ${
+                      isActive 
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border border-blue-200 shadow-sm" 
+                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    }`
                   }
                 >
-                  {/* ...icon and text... */}
-                  <svg
-                    className="w-5 h-5 transition duration-75 shrink-0"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="m17.418 3.623-.018-.008a6.713 6.713 0 0 0-2.4-.569V2h1a1 1 0 1 0 0-2h-2a1 1 0 0 0-1 1v2H9.89A6.977 6.977 0 0 1 12 8v5h-2V8A5 5 0 1 0 0 8v6a1 1 0 0 0 1 1h8v4a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4h6a1 1 0 0 0 1-1V8a5 5 0 0 0-2.582-4.377ZM6 12H4a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2Z"/>
-                  </svg>
-                  <span className="flex-1 transition-colors duration-200 ms-3 whitespace-nowrap">
-                    Course
-                  </span>
+                  <div className={`p-2 rounded-lg mr-3 transition-colors ${
+                    location.pathname === "/dashboard" 
+                      ? "bg-blue-100" 
+                      : "bg-gray-100 group-hover:bg-gray-200"
+                  }`}>
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <span className="font-medium">Courses</span>
                 </NavLink>
-
-</li>
-
-{/* <li>
-
-  <a href="#"
-     className="flex items-center p-2 transition-colors duration-200 rounded-lg hover:bg-gray-700 group">
-  <svg className="w-5 h-5 text-gray-500 transition duration-75 shrink-0 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 18">
-                  <path d="M14 2a3.963 3.963 0 0 0-1.4.267 6.439 6.439 0 0 1-1.331 6.638A4 4 0 1 0 14 2Zm1 9h-1.264A6.957 6.957 0 0 1 15 15v2a2.97 2.97 0 0 1-.184 1H19a1 1 0 0 0 1-1v-1a5.006 5.006 0 0 0-5-5ZM6.5 9a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9ZM8 10H5a5.006 5.006 0 0 0-5 5v2a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-2a5.006 5.006 0 0 0-5-5Z"/>
-               </svg>
-
-    <span className="flex-1 text-gray-600 transition-colors duration-200 ms-3 whitespace-nowrap group-hover:text-white">
-      Chat
-    </span        
-  </a>
-</li> */}
-
-<li>
-  <NavLink
+              </li>
+              
+              <li>
+                <NavLink
                   to="/dashboard/profile"
-                  end
                   className={({ isActive }) =>
-                    [
-                      "flex items-center p-2 transition-colors duration-200 rounded-lg group",
-                      (isActive || location.pathname === "/dashboard/profile")
-                        ? "bg-gray-700 text-white"
-                        : "hover:bg-gray-700 text-gray-600"
-                    ].join(" ")
+                    `group flex items-center p-3 rounded-xl transition-all ${
+                      isActive 
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border border-blue-200 shadow-sm" 
+                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    }`
                   }
                 >
-                  
-                  {/* ...icon and text... */}
-                     <svg 
-                    className="w-5 h-5 text-gray-500 transition duration-75 shrink-0 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    fill="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                  </svg>
-                  <span className="flex-1 transition-colors duration-200 ms-3 whitespace-nowrap">
-                    Profile
-                  </span>
+                  <div className={`p-2 rounded-lg mr-3 transition-colors ${
+                    location.pathname === "/dashboard/profile" 
+                      ? "bg-blue-100" 
+                      : "bg-gray-100 group-hover:bg-gray-200"
+                  }`}>
+                    <User className="w-5 h-5" />
+                  </div>
+                  <span className="font-medium">Profile</span>
                 </NavLink>
- 
-</li>
-<li>
- <NavLink
+              </li>
+              
+              <li>
+                <NavLink
                   to="/dashboard/notifications"
-                  end
                   className={({ isActive }) =>
-                    [
-                      "flex items-center p-2 transition-colors duration-200 rounded-lg group",
-                      (isActive || location.pathname === "/dashboard/notifications")
-                        ? "bg-gray-700 text-white"
-                        : "hover:bg-gray-700 text-gray-600"
-                    ].join(" ")
+                    `group flex items-center p-3 rounded-xl transition-all ${
+                      isActive 
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border border-blue-200 shadow-sm" 
+                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    }`
                   }
                 >
-                  
-                  {/* ...icon and text... */}
-                                                <svg 
-                  className="w-5 h-5 text-gray-500 transition duration-75 shrink-0 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2a7 7 0 0 0-7 7v5H4a1 1 0 0 0 0 2h16a1 1 0 0 0 0-2h-1V9a7 7 0 0 0-7-7zm0 18a3 3 0 0 0 3-3H9a3 3 0 0 0 3 3z"/>
-                </svg>
-                  <span className="flex-1 transition-colors duration-200 ms-3 whitespace-nowrap">
-                    Notifications
-                  </span>
+                  <div className={`p-2 rounded-lg mr-3 transition-colors ${
+                    location.pathname === "/dashboard/notifications" 
+                      ? "bg-blue-100" 
+                      : "bg-gray-100 group-hover:bg-gray-200"
+                  }`}>
+                    <Bell className="w-5 h-5" />
+                  </div>
+                  <span className="font-medium">Notifications</span>
                 </NavLink>
-</li>
-<NavLink
-  to="/dashboard/chat"
-  className={({ isActive }) =>
-    [
-      "flex items-center p-2 transition-colors duration-200 rounded-lg group",
-      isActive ? "bg-gray-700 text-white" : "hover:bg-gray-700 text-gray-600"
-    ].join(" ")
-  }
->
-  <svg
-    className="w-5 h-5 text-gray-500 transition duration-75 shrink-0 group-hover:text-white"
-    xmlns="http://www.w3.org/2000/svg"
-    fill="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path d="M20 2H4a2 2 0 0 0-2 2v16l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z" />
-  </svg>
-  <span className="flex-1 ms-3 whitespace-nowrap">Course Chat</span>
-</NavLink>
+              </li>
 
-{/* Academic Year Chat */}
-<NavLink
-  to="/dashboard/academic-chat"
-  className={({ isActive }) =>
-    [
-      "flex items-center p-2 transition-colors duration-200 rounded-lg group",
-      isActive ? "bg-gray-700 text-white" : "hover:bg-gray-700 text-gray-600"
-    ].join(" ")
-  }
->
-  <svg
-    className="w-5 h-5 text-gray-500 transition duration-75 shrink-0 group-hover:text-white"
-    xmlns="http://www.w3.org/2000/svg"
-    fill="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path d="M4 4h16v2H4V4zm0 6h10v2H4v-2zm0 6h16v2H4v-2z" />
-  </svg>
-  <span className="flex-1 ms-3 whitespace-nowrap">Academic Year Chat</span>
-</NavLink>
-<li>
- <NavLink
-        onClick={handleLogout}
-        className="flex items-center w-full p-2 transition-colors duration-200 rounded-lg hover:bg-gray-700 group"
-      >
-        <svg
-          className="w-5 h-5 text-gray-500 transition duration-75 shrink-0 dark:text-gray-400 group-hover:text-white"
-          aria-hidden="true"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 18 16"
-        >
-          <path
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M1 8h11m0 0L8 4m4 4-4 4m4-11h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3"
-          />
-        </svg>
+              <li>
+                <NavLink
+                  to="/dashboard/chat"
+                  className={({ isActive }) =>
+                    `group flex items-center p-3 rounded-xl transition-all ${
+                      isActive 
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border border-blue-200 shadow-sm" 
+                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    }`
+                  }
+                >
+                  <div className={`p-2 rounded-lg mr-3 transition-colors ${
+                    location.pathname === "/dashboard/chat" 
+                      ? "bg-blue-100" 
+                      : "bg-gray-100 group-hover:bg-gray-200"
+                  }`}>
+                    <MessageCircle className="w-5 h-5" />
+                  </div>
+                  <span className="font-medium">Course Chat</span>
+                </NavLink>
+              </li>
 
-        <span className="flex-1 text-gray-600 transition-colors duration-200 ms-3 whitespace-nowrap group-hover:text-white">
-          Log out
-        </span>
-      </NavLink>
-</li>
+              <li>
+                <NavLink
+                  to="/dashboard/academic-chat"
+                  className={({ isActive }) =>
+                    `group flex items-center p-3 rounded-xl transition-all ${
+                      isActive 
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border border-blue-200 shadow-sm" 
+                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    }`
+                  }
+                >
+                  <div className={`p-2 rounded-lg mr-3 transition-colors ${
+                    location.pathname === "/dashboard/academic-chat" 
+                      ? "bg-blue-100" 
+                      : "bg-gray-100 group-hover:bg-gray-200"
+                  }`}>
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <span className="font-medium">Academic Year Chat</span>
+                </NavLink>
+              </li>
+            </ul>
+            
+            {/* Logout Button */}
+            <div className="mt-8 pt-8 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.href = "/login";
+                }}
+                className="w-full group flex items-center p-3 rounded-xl transition-all text-gray-700 hover:bg-red-50 hover:text-red-600"
+              >
+                <div className="p-2 rounded-lg mr-3 bg-gray-100 group-hover:bg-red-100 transition-colors">
+                  <LogOut className="w-5 h-5" />
+                </div>
+                <span className="font-medium">Logout</span>
+              </button>
+            </div>
+          </nav>
+        </div>
 
-      </ul>
-      
-   </div>
-</aside>
-
-      <div className="p-4 sm:ml-64">
-                  <Outlet/>
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full bg-white/60 backdrop-blur-sm">
+            <Outlet />
+          </div>
+        </div>
       </div>
-</div>
-
-  
-
-
-
-</div>
-    </>
-  )
+    </div>
+  );
 }
