@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
-import { courseChatRooms, courseOfferings } from './../db/schema';
+import { courseChatRooms, courseOfferings, enrollments, users } from './../db/schema';
 import { eq, and } from "drizzle-orm";
 
 export const getAllCourseOfferings = async (req: Request, res: Response) => {
@@ -77,6 +77,20 @@ export const deleteCourseOffering = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     try {
+        // prevent deletion if linked data exists
+        const hasEnrollments = await db
+            .select({ id: enrollments.id })
+            .from(enrollments)
+            .where(eq(enrollments.offeringId, id))
+            .limit(1);
+
+        if (hasEnrollments.length > 0) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Cannot delete course offering: existing enrollments found'
+            });
+        }
+
         const deletedCourseOffering = await db.delete(courseOfferings)
             .where(eq(courseOfferings.id, id))
             .returning();

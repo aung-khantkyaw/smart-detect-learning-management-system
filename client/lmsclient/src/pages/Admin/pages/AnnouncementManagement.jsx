@@ -4,15 +4,18 @@ import { api } from "../../../lib/api";
 export default function AnnouncementManagement() {
   const [announcements, setAnnouncements] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [courseOfferings, setCourseOfferings] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [scopeFilter, setScopeFilter] = useState(""); // "" | "ACADEMIC" | "COURSE"
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
-    course_id: "",
-    priority: "NORMAL"
+    scope: "ACADEMIC", // 'ACADEMIC' | 'COURSE'
+    scopeId: ""        // if COURSE, this is offeringId; if ACADEMIC, use 'GLOBAL'
   });
 
   useEffect(() => {
@@ -21,13 +24,17 @@ export default function AnnouncementManagement() {
 
   const fetchData = async () => {
     try {
-      const [announcementsData, coursesData] = await Promise.all([
+      const [announcementsData, coursesData, offeringsData, teachersData] = await Promise.all([
         api.get("/announcements"),
-        api.get("/courses")
+        api.get("/courses"),
+        api.get("/course-offerings"),
+        api.get("/users?role=TEACHER"),
       ]);
 
       setAnnouncements(Array.isArray(announcementsData) ? announcementsData : announcementsData?.data || []);
       setCourses(Array.isArray(coursesData) ? coursesData : coursesData?.data || []);
+      setCourseOfferings(Array.isArray(offeringsData) ? offeringsData : offeringsData?.data || []);
+      setTeachers(Array.isArray(teachersData) ? teachersData : teachersData?.data || []);
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
@@ -35,23 +42,40 @@ export default function AnnouncementManagement() {
     }
   };
 
-  const filteredAnnouncements = announcements.filter(announcement =>
-    announcement.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    announcement.content?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAnnouncements = announcements.filter(announcement => {
+    const matchesSearch = (
+      announcement.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      announcement.content?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const matchesScope = !scopeFilter || announcement.scope === scopeFilter;
+    return matchesSearch && matchesScope;
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
+      // Prepare payload aligned with backend controller (scope, scopeId, title, content)
+      const payloadBase = {
+        title: formData.title,
+        content: formData.content,
+        scope: formData.scope,
+      };
+      const payload = formData.scope === "COURSE"
+        ? { ...payloadBase, scopeId: formData.scopeId }
+        : payloadBase; // omit scopeId for academic; backend will resolve
+
       if (editingAnnouncement) {
-        await api.put(`/announcements/${editingAnnouncement.id}`, formData);
+        await api.put(`/announcements/${editingAnnouncement.id}`, {
+          title: payload.title,
+          content: payload.content,
+        });
       } else {
-        await api.post("/announcements", formData);
+        await api.post("/announcements", payload);
       }
       setShowCreateModal(false);
       fetchData();
-      setFormData({ title: "", content: "", course_id: "", priority: "NORMAL" });
+      setFormData({ title: "", content: "", scope: "ACADEMIC", scopeId: "" });
     } catch (err) {
       console.error(err);
       alert(err.message || "Operation failed");
@@ -88,7 +112,7 @@ export default function AnnouncementManagement() {
           <button
             onClick={() => {
               setEditingAnnouncement(null);
-              setFormData({ title: "", content: "", course_id: "", priority: "NORMAL" });
+              setFormData({ title: "", content: "", scope: "ACADEMIC", scopeId: "" });
               setShowCreateModal(true);
             }}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -101,67 +125,89 @@ export default function AnnouncementManagement() {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-6">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Search Announcements</label>
-            <input
-              type="text"
-              placeholder="Search by title or content..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Search Announcements</label>
+              <input
+                type="text"
+                placeholder="Search by title or content..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Scope</label>
+              <select
+                value={scopeFilter}
+                onChange={(e) => setScopeFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All</option>
+                <option value="ACADEMIC">Academic</option>
+                <option value="COURSE">Course</option>
+              </select>
+            </div>
           </div>
         </div>
 
         <div className="grid gap-6">
           {filteredAnnouncements.length > 0 ? (
-            filteredAnnouncements.map((announcement) => (
-              <div key={announcement.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{announcement.title}</h3>
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        announcement.priority === 'HIGH' ? 'bg-red-100 text-red-800' :
-                        announcement.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
-                        {announcement.priority}
-                      </span>
+            filteredAnnouncements.map((announcement) => {
+              const isCourse = announcement.scope === 'COURSE';
+              const offering = isCourse ? courseOfferings.find(o => o.id === announcement.scopeId) : null;
+              const course = offering ? courses.find(c => c.id === offering.courseId) : null;
+              const teacher = offering ? teachers.find(t => t.id === offering.teacherId) : null;
+              return (
+                <div key={announcement.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900">{announcement.title}</h3>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${isCourse ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                          {isCourse ? 'COURSE' : 'ACADEMIC'}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 mb-3">{announcement.content}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span>
+                          {isCourse ? (
+                            <>Course: {course?.title || course?.name || 'Unknown'} — {teacher?.fullName || 'Unknown'}</>
+                          ) : (
+                            <>Scope: Academic (All)</>
+                          )}
+                        </span>
+                        <span>•</span>
+                        <span>{new Date(announcement.createdAt).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                    <p className="text-gray-600 mb-3">{announcement.content}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>Course: {courses.find(c => c.id === announcement.course_id)?.name || 'General'}</span>
-                      <span>•</span>
-                      <span>{new Date(announcement.createdAt).toLocaleDateString()}</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingAnnouncement(announcement);
+                          setFormData({
+                            title: announcement.title || "",
+                            content: announcement.content || "",
+                            scope: announcement.scope || "ACADEMIC",
+                            scopeId: announcement.scope === 'COURSE' ? (announcement.scopeId || '') : ''
+                          });
+                          setShowCreateModal(true);
+                        }}
+                        className="px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(announcement.id)}
+                        className="px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingAnnouncement(announcement);
-                        setFormData({
-                          title: announcement.title || "",
-                          content: announcement.content || "",
-                          course_id: announcement.course_id || "",
-                          priority: announcement.priority || "NORMAL"
-                        });
-                        setShowCreateModal(true);
-                      }}
-                      className="px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(announcement.id)}
-                      className="px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
-                    >
-                      Delete
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -175,86 +221,121 @@ export default function AnnouncementManagement() {
 
         {/* Create/Edit Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    {editingAnnouncement ? 'Edit Announcement' : 'Create Announcement'}
-                  </h3>
-                  <button
-                    onClick={() => setShowCreateModal(false)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8 text-white relative">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <div className="text-center">
+                  <div className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-2xl font-bold mx-auto mb-3">
+                    🛎️
+                  </div>
+                  <h3 className="text-2xl font-bold">{editingAnnouncement ? 'Edit Announcement' : 'Create Announcement'}</h3>
+                  <p className="text-white/80 text-sm mt-1">Share updates with everyone or a specific course</p>
                 </div>
               </div>
               
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                {/* Scope selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">Announcement Scope</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      formData.scope === 'ACADEMIC' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'
+                    }`}>
+                      <input
+                        type="radio"
+                        value="ACADEMIC"
+                        checked={formData.scope === 'ACADEMIC'}
+                        onChange={(e) => setFormData({ ...formData, scope: e.target.value, scopeId: '' })}
+                        className="sr-only"
+                      />
+                      <div className="text-center w-full">
+                        <div className="text-2xl mb-1">🏫</div>
+                        <div className="font-medium text-sm">Academic (All)</div>
+                      </div>
+                    </label>
+                    <label className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      formData.scope === 'COURSE' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'
+                    }`}>
+                      <input
+                        type="radio"
+                        value="COURSE"
+                        checked={formData.scope === 'COURSE'}
+                        onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
+                        className="sr-only"
+                      />
+                      <div className="text-center w-full">
+                        <div className="text-2xl mb-1">📚</div>
+                        <div className="font-medium text-sm">Course Offering</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {formData.scope === 'COURSE' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-800 mb-3">Select Offering</label>
+                    <select
+                      required
+                      value={formData.scopeId}
+                      onChange={(e) => setFormData({ ...formData, scopeId: e.target.value })}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                    >
+                      <option value="">Choose course offering...</option>
+                      {courseOfferings.map(offering => {
+                        const course = courses.find(c => c.id === offering.courseId);
+                        const teacher = teachers.find(t => t.id === offering.teacherId);
+                        return (
+                          <option key={offering.id} value={offering.id}>
+                            {course?.title || course?.name} - {teacher?.fullName}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">Title</label>
                   <input
                     type="text"
                     required
                     value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
                     placeholder="Enter announcement title"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">Content</label>
                   <textarea
                     required
-                    rows={4}
+                    rows={5}
                     value={formData.content}
-                    onChange={(e) => setFormData({...formData, content: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
                     placeholder="Enter announcement content"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
-                    <select
-                      value={formData.course_id}
-                      onChange={(e) => setFormData({...formData, course_id: e.target.value})}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                    >
-                      <option value="">General Announcement</option>
-                      {courses.map(course => (
-                        <option key={course.id} value={course.id}>{course.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                    <select
-                      value={formData.priority}
-                      onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                    >
-                      <option value="NORMAL">Normal</option>
-                      <option value="MEDIUM">Medium</option>
-                      <option value="HIGH">High</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="flex justify-end space-x-3 pt-4">
+
+                <div className="flex gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex-1 px-6 py-3 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:scale-105 transition-all"
                   >
                     {editingAnnouncement ? 'Update' : 'Create'}
                   </button>

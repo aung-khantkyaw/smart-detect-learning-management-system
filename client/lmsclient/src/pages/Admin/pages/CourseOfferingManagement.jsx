@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../../../lib/api";
+import ConfirmDeleteModal from "../../../components/ConfirmDeleteModal";
 
 export default function CourseOfferingManagement() {
   const [offerings, setOfferings] = useState([]);
@@ -16,6 +17,10 @@ export default function CourseOfferingManagement() {
     teacherId: "",
     academicYearId: ""
   });
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -63,6 +68,12 @@ export default function CourseOfferingManagement() {
       console.error(err);
       alert(err.message || "Operation failed");
     }
+  };
+
+  const handleDelete = (offering) => {
+    setConfirmTarget(offering);
+    setDeleteError("");
+    setShowConfirm(true);
   };
 
   if (loading) {
@@ -169,6 +180,12 @@ export default function CourseOfferingManagement() {
                         >
                           Edit
                         </button>
+                        <button 
+                          onClick={() => handleDelete(offering)}
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -245,6 +262,39 @@ export default function CourseOfferingManagement() {
             </div>
           </div>
         )}
+
+        {/* Confirm Delete Modal */}
+        <ConfirmDeleteModal
+          open={showConfirm}
+          title="Delete Course Offering"
+          message={confirmTarget ? `This will permanently delete the course offering for "${courses.find(c => c.id === confirmTarget.courseId)?.title || 'Unknown Course'}".` : ""}
+          requiredText={confirmTarget ? `delete ${courses.find(c => c.id === confirmTarget.courseId)?.title || 'offering'}` : ""}
+          confirmLabel="Delete"
+          error={deleteError}
+          loading={deleting}
+          onClose={() => {
+            setShowConfirm(false);
+            setConfirmTarget(null);
+            setDeleting(false);
+            setDeleteError("");
+          }}
+          onConfirm={async () => {
+            if (!confirmTarget) return;
+            try {
+              setDeleting(true);
+              setDeleteError("");
+              await api.del(`/course-offerings/${confirmTarget.id}`);
+              setShowConfirm(false);
+              setConfirmTarget(null);
+              setDeleting(false);
+              fetchData();
+            } catch (err) {
+              console.error(err);
+              setDeleteError(err.message || "Delete failed");
+              setDeleting(false);
+            }
+          }}
+        />
 
         {/* Create/Edit Modal */}
         {showCreateModal && (
