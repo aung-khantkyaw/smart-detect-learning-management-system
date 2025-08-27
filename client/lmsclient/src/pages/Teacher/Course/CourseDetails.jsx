@@ -67,16 +67,24 @@ export default function TeacherCourseDetails() {
 
   return (
     <>
-      <div className="mx-auto p-2">
-        {courseOffering ? (
-          <>
-            <h1 className="text-xl font-bold">{courseOffering.courseTitle}</h1>
-            <p>Code: {courseOffering.courseCode}</p>
-            <p>Academic Year: {courseOffering.academicYear}</p>
-          </>
-        ) : (
-          <div>Course offering not found</div>
-        )}
+      <div className="p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-3">
+            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Course Details</span>
+          </div>
+          
+          {courseOffering ? (
+            <div className="border-l-4 border-blue-600 pl-4 py-2">
+              <h1 className="text-xl font-bold text-gray-900">{courseOffering.courseTitle}</h1>
+              <p className="text-blue-600 font-medium">{courseOffering.courseCode}</p>
+              <p className="text-gray-600">{courseOffering.academicYear}</p>
+            </div>
+          ) : (
+            <div className="border border-gray-200 p-4 bg-gray-50">
+              <p className="text-gray-600">Course offering not found</p>
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Teacher Course Nav Section */}

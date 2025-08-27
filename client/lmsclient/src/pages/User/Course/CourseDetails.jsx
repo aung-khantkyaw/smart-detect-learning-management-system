@@ -33,27 +33,33 @@ export default function CourseOverview() {
 
     fetchCourse();
   }, [id]);
+  
   return (
     <>
-    <div className=" mx-auto p-2">
-      {course ? (
-        <>
-          <h1 className="text-xl font-bold ">{course.title}</h1>
-          <p>Code: {course.code}</p>
-         
-        </>
-      ) : (
-        <div>Course not found</div>
-      )}
-    </div>
-    {/* Course Overview Nav Section */}
-    <CourseNav/>
-    
-
-    <Outlet/>
-
-
-
+      <div className="p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-3">
+            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Course Details</span>
+          </div>
+          
+          {course ? (
+            <div className="border-l-4 border-blue-600 pl-4 py-2">
+              <h1 className="text-xl font-bold text-gray-900">{course.title}</h1>
+              <p className="text-blue-600 font-medium">{course.code}</p>
+              <p className="text-gray-600">{course.description || 'No description available'}</p>
+            </div>
+          ) : (
+            <div className="border border-gray-200 p-4 bg-gray-50">
+              <p className="text-gray-600">Course not found</p>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Course Nav Section */}
+      <CourseNav />
+      
+      <Outlet context={{ course }} />
     </>
   )
 }

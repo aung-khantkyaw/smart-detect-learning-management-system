@@ -3,6 +3,7 @@ import { useState ,useEffect} from "react";
 
 export default function Profile() {
  const [user, setUser] = useState(null);
+  const [academicYear, setAcademicYear] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,32 +17,58 @@ export default function Profile() {
     }
 
     // If we have stored user data, use it directly
-    if (storedUserData) {
-      try {
-        const userData = JSON.parse(storedUserData);
-        setUser(userData);
-        setLoading(false);
-        return;
-      } catch (err) {
-        console.error("Error parsing stored user data:", err);
+  if (storedUserData) {
+  try {
+    const parsed = JSON.parse(storedUserData);
+    setUser(parsed);
+
+    // 🔹 fetch academic years to resolve the name
+    fetch("http://localhost:3000/api/academic-years", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(academicYearsData => {
+      if (academicYearsData.status === "success" && parsed.academicYearId) {
+        const yearData = academicYearsData.data.find(y => y.id === parsed.academicYearId);
+        setAcademicYear(yearData?.name || 'Not assigned');
       }
-    }
+    });
+
+    setLoading(false);
+    return;
+  } catch (err) {
+    console.error("Error parsing stored user data:", err);
+  }
+}
+
 
     // Fallback: try to get current user from API
     const fetchCurrentUser = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/users/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const [userRes, academicYearsRes] = await Promise.all([
+          fetch(`http://localhost:3000/api/users/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch("http://localhost:3000/api/academic-years", {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
 
-        const data = await res.json();
-        if (data.status === "success") {
-          setUser(data.data);
-          localStorage.setItem("userData", JSON.stringify(data.data));
+        const [userData, academicYearsData] = await Promise.all([
+          userRes.json(), academicYearsRes.json()
+        ]);
+
+        if (userData.status === "success") {
+          setUser(userData.data);
+          localStorage.setItem("userData", JSON.stringify(userData.data));
+          
+          // Find academic year name
+          if (academicYearsData.status === "success" && userData.data.academicYearId) {
+            const yearData = academicYearsData.data.find(y => y.id === userData.data.academicYearId);
+            setAcademicYear(yearData?.name || 'Not assigned');
+          }
         } else {
-          console.error(data.message);
+          console.error(userData.message);
         }
       } catch (err) {
         console.error("Fetch error:", err);
@@ -53,90 +80,68 @@ export default function Profile() {
     fetchCurrentUser();
   }, []);
 
-
-  // const [activeTab, setActiveTab] = useState("overview");
-  // const [formData, setFormData] = useState({
-  //   name: user.name,
-  //   email: user.email,
-  // });
-  // const [passwordData, setPasswordData] = useState({
-  //   oldPassword: "",
-  //   newPassword: "",
-  //   confirmPassword: "",
-  // });
-
-  // Handle profile edit form
-  // const handleProfileChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setFormData({ ...formData, [name]: value });
-  // };
-  // const handleProfileSubmit = (e) => {
-  //   e.preventDefault();
-  //   alert("Profile updated successfully!");
-  //   // API call to update user profile here
-  // };
-
-  // Handle password change form
-  // const handlePasswordChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setPasswordData({ ...passwordData, [name]: value });
-  // };
-  // const handlePasswordSubmit = (e) => {
-  //   e.preventDefault();
-  //   if (passwordData.newPassword !== passwordData.confirmPassword) {
-  //     alert("Passwords do not match!");
-  //     return;
-  //   }
-  //   alert("Password changed successfully!");
-  //   // API call to update password here
-  // };
-
   if (loading) {
     return (
-         <div className="flex w-full flex-col items-center justify-center h-screen">
-      <div className="w-12 h-12 border-4 border-blue-500 border-dashed rounded-full animate-spin"></div>
-            <p>Loading ...</p>
-    
-    </div>
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600/30 border-t-blue-600"></div>
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6 flex items-center justify-center">
-        <div className="text-lg text-red-600">Please login to view your profile</div>
+      <div className="p-8 text-center">
+        <p className="text-gray-600">Unable to load profile information.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-6">
-      {/* Profile Card */}
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg p-6">
-          <div className="max-w-5xl mx-auto  rounded-2xl p-6">
-  <div className="flex items-center space-x-6">
-    <img
-      src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSPpAh63HncAuJOC6TxWkGLYpS0WwNXswz9MA&s"
-      alt="Profile"
-      className="w-24 h-24 rounded-full border-4 border-indigo-500"
-    />
-    <div>
-      <h1 className="text-2xl font-bold text-gray-800">{user?.full_name || user?.fullName}</h1>
-      <p className="text-gray-600">{user?.email}</p>
+    <div className="p-8 min-h-screen">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-6">
+          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Profile</span>
+        </div>
 
-      <p className="text-sm text-gray-500">
+        <div className="space-y-8">
+          <div className="border-l-4 border-blue-600 pl-6 py-4">
+            <h2 className="text-2xl font-bold text-gray-900">{ user?.fullName}</h2>
+            <p className="text-gray-600">{user?.email}</p>
+          </div>
 
-        Student Number: {user?.student_number}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="border border-gray-200 p-6 bg-gray-50">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-300 pb-2">Personal Information</h3>
+              <div className="space-y-4">
+                <div className="border-l-3 border-blue-400 pl-3">
+                  <label className="block text-sm text-gray-600 mb-1">Full Name</label>
+                  <p className="text-gray-900 font-medium">{ user?.fullName}</p>
+                </div>
+                <div className="border-l-3 border-blue-400 pl-3">
+                  <label className="block text-sm text-gray-600 mb-1">Email Address</label>
+                  <p className="text-gray-900 font-medium">{user?.email}</p>
+                </div>
+              </div>
+            </div>
 
-      </p>
-      <p className="text-sm text-gray-500">
-        Academic Year: {user?.academicYear || "N/A"}
-      </p>
-    
-   
-    </div>
-  </div>
-</div>
+            <div className="border border-gray-200 p-6 bg-gray-50">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-300 pb-2">Academic Information</h3>
+              <div className="space-y-4">
+                <div className="border-l-3 border-purple-400 pl-3">
+                  <label className="block text-sm text-gray-600 mb-1">Student Number</label>
+                  <p className="text-gray-900 font-medium">{user?.studentNumber || 'Not assigned'}</p>
+                </div>
+                <div className="border-l-3 border-purple-400 pl-3">
+                  <label className="block text-sm text-gray-600 mb-1">Academic Year</label>
+                  <p className="text-gray-900 font-medium">{academicYear || 'Not assigned'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
