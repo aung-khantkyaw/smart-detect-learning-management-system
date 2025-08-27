@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
-import { announcements, courseOfferings } from '../db/schema';
+import { announcements, courseOfferings, academicYears } from '../db/schema';
 import { and, desc, eq } from 'drizzle-orm';
 
 interface AuthRequest extends Request {
@@ -33,14 +33,33 @@ export const createAnnouncement = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    // Determine final scopeId
+    let finalScopeId = scopeId;
+    if (scope === 'ACADEMIC') {
+      // Prefer the user's academicYearId if present; otherwise, fall back to latest academic year
+      if (req.user?.academicYearId) {
+        finalScopeId = req.user.academicYearId as string;
+      } else {
+        const latestYear = await db
+          .select({ id: academicYears.id, startDate: academicYears.startDate })
+          .from(academicYears)
+          .orderBy(desc(academicYears.startDate))
+          .limit(1);
+        if (latestYear.length === 0) {
+          return res.status(400).json({ status: 'error', message: 'No academic year found to attach academic announcement' });
+        }
+        finalScopeId = latestYear[0].id as string;
+      }
+    }
+
     const [created] = await db
       .insert(announcements)
-      .values({ scope, scopeId, title, content, authorId: req.user?.id })
+      .values({ scope, scopeId: finalScopeId, title, content, authorId: req.user?.id })
       .returning();
 
     try {
       // Broadcast real-time event to the appropriate room
-      global.socketService?.emitToChatRoom(scopeId, scope, 'announcement-created', created);
+      global.socketService?.emitToChatRoom(finalScopeId as string, scope, 'announcement-created', created);
     } catch (e) {
       console.warn('Socket emit failed (announcement-created):', e);
     }

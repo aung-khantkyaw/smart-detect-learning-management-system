@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../../../lib/api";
+import ConfirmDeleteModal from "../../../components/ConfirmDeleteModal";
 
 export default function CourseManagement() {
   const [courses, setCourses] = useState([]);
@@ -15,6 +16,10 @@ export default function CourseManagement() {
     description: "",
     departmentId: ""
   });
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     fetchCourses();
@@ -58,6 +63,12 @@ export default function CourseManagement() {
       console.error(err);
       alert(err.message || "Operation failed");
     }
+  };
+
+  const handleDelete = (course) => {
+    setConfirmTarget(course);
+    setDeleteError("");
+    setShowConfirm(true);
   };
 
   if (loading) {
@@ -161,6 +172,12 @@ export default function CourseManagement() {
                         >
                           Edit
                         </button>
+                        <button 
+                          onClick={() => handleDelete(course)}
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -181,6 +198,39 @@ export default function CourseManagement() {
             </table>
           </div>
         </div>
+
+        {/* Confirm Delete Modal */}
+        <ConfirmDeleteModal
+          open={showConfirm}
+          title="Delete Course"
+          message={confirmTarget ? `This will permanently delete course "${confirmTarget.title}".` : ""}
+          requiredText={confirmTarget ? `delete ${confirmTarget.title}` : ""}
+          confirmLabel="Delete"
+          error={deleteError}
+          loading={deleting}
+          onClose={() => {
+            setShowConfirm(false);
+            setConfirmTarget(null);
+            setDeleting(false);
+            setDeleteError("");
+          }}
+          onConfirm={async () => {
+            if (!confirmTarget) return;
+            try {
+              setDeleting(true);
+              setDeleteError("");
+              await api.del(`/courses/${confirmTarget.id}`);
+              setShowConfirm(false);
+              setConfirmTarget(null);
+              setDeleting(false);
+              fetchCourses();
+            } catch (err) {
+              console.error(err);
+              setDeleteError(err.message || "Delete failed");
+              setDeleting(false);
+            }
+          }}
+        />
 
         {/* Course Details Modal */}
         {viewingCourse && (

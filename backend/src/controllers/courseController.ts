@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
-import { courses } from './../db/schema';
+import { courseOfferings, courses } from './../db/schema';
 import { eq } from "drizzle-orm";
 
 export const getAllCourses = async (req: Request, res: Response) => {
@@ -75,17 +75,32 @@ export const updateCourse = async (req: Request, res: Response) => {
 export const deleteCourse = async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    try {
-        const deletedCourse = await db.delete(courses).where(eq(courses.id, id)).returning();
+  try {
+      // Prevent deletion if linked data exists
+      const hasOfferings = await db
+        .select({ id: courseOfferings.id })
+        .from(courseOfferings)
+        .where(eq(courseOfferings.courseId, id))
+        .limit(1);
+      if (hasOfferings.length > 0) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Cannot delete course: existing course offerings found'
+        });
+      }
 
-        if (deletedCourse.length === 0) {
-            return res.status(404).json({ status: 'error', message: 'Course not found' });
-        }
+      const deletedCourse = await db.delete(courses)
+        .where(eq(courses.id, id))
+        .returning();
 
-        res.json({ status: 'success', message: 'Course deleted successfully' });
+      if (deletedCourse.length === 0) {
+        return res.status(404).json({ status: 'error', message: 'Course not found' });
+      }
+
+      res.json({ status: 'success', message: 'Course deleted successfully' });
     } catch (error) {
-        console.error('Error deleting course:', error);
-        res.status(500).json({ status: 'error', message: 'Internal server error' });
+      console.error('Error deleting course:', error);
+      res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
 };
 
