@@ -32,33 +32,68 @@ export default function Chat() {
 
   const fetchChatRoom = async () => {
     const token = localStorage.getItem("accessToken");
-    
-    console.log("Course ID:", id);
+    const userData = JSON.parse(localStorage.getItem("userData") || '{}');
     
     try {
-      const offeringsRes = await fetch(`http://localhost:3000/api/course-offerings`, {
+      // Get student's enrollments to find the correct offering
+      const enrollmentsRes = await fetch(`http://localhost:3000/api/enrollments`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      const offeringsData = await offeringsRes.json();
-      console.log("Offerings data:", offeringsData);
+      if (!enrollmentsRes.ok) {
+        setLoading(false);
+        return;
+      }
       
-      const offerings = offeringsData.status === "success" ? offeringsData.data : [];
-      const offering = offerings.find(o => o.courseId === id);
-      console.log("Found offering:", offering);
+      const enrollmentsData = await enrollmentsRes.json();
+      const enrollments = enrollmentsData.status === "success" ? enrollmentsData.data : enrollmentsData;
       
-      if (offering) {
-        const res = await fetch(`http://localhost:3000/api/chat-rooms/course`, {
+      // Find student's enrollment for this course
+      const studentEnrollment = enrollments.find(e => 
+        e.studentId === userData.id && 
+        (e.offeringId === id || e.offering?.courseId === id)
+      );
+      
+      if (!studentEnrollment) {
+        // Try to find offering by course ID
+        const offeringsRes = await fetch(`http://localhost:3000/api/course-offerings`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
-        console.log("Chat rooms response status:", res.status);
-        const data = await res.json();
-        console.log("Chat rooms data:", data);
+        const offeringsData = await offeringsRes.json();
+        const offerings = offeringsData.status === "success" ? offeringsData.data : [];
+        const offering = offerings.find(o => o.courseId === id);
         
-        const rooms = data.status === "success" ? data.data : [];
-        const room = rooms.find(r => r.offeringId === offering.id);
-        console.log("Found chat room:", room);
+        if (!offering) {
+          setLoading(false);
+          return;
+        }
+        
+        // Check if student is enrolled in this offering
+        const enrollmentForOffering = enrollments.find(e => 
+          e.studentId === userData.id && e.offeringId === offering.id
+        );
+        
+        if (!enrollmentForOffering) {
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // Get chat rooms
+      const roomsRes = await fetch(`http://localhost:3000/api/chat-rooms/course`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (roomsRes.ok) {
+        const roomsData = await roomsRes.json();
+        const rooms = roomsData.status === "success" ? roomsData.data : roomsData;
+        
+        // Find room by offering ID
+        const offeringId = studentEnrollment?.offeringId || 
+          enrollments.find(e => e.studentId === userData.id && e.offering?.courseId === id)?.offeringId;
+        
+        const room = rooms.find(r => r.offeringId === offeringId);
         
         if (room) {
           setChatRoom(room);
@@ -76,19 +111,13 @@ export default function Chat() {
     
     const token = localStorage.getItem("accessToken");
     
-    console.log("Fetching messages for chat room:", chatRoom.id);
-    
     try {
       const res = await fetch(`http://localhost:3000/api/chat-rooms/COURSE/${chatRoom.id}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      console.log("Messages response status:", res.status);
-      
       if (res.ok) {
         const data = await res.json();
-        console.log("Messages data:", data);
-        
         let messagesList = [];
         
         if (Array.isArray(data)) {
@@ -102,14 +131,14 @@ export default function Chat() {
           message: msg.message,
           fileUrl: msg.fileUrl,
           createdAt: msg.createdAt,
-          senderId: msg.sender?.id,
-          senderName: msg.sender?.fullName
+          senderId: msg.senderId || msg.sender?.id,
+          senderName: msg.sender?.fullName || msg.senderName || 'Unknown User'
         }));
         
-        console.log("Transformed messages:", transformedMessages);
+        // Sort messages by creation time (oldest first, newest last)
+        transformedMessages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        
         setMessages(transformedMessages);
-      } else {
-        console.error("Failed to fetch messages:", res.status, await res.text());
       }
     } catch (err) {
       console.error("Error fetching messages:", err);
@@ -181,7 +210,7 @@ export default function Chat() {
         <h2 className="text-xl font-bold text-gray-900 mb-4">Course Chat Room</h2>
 
         <div className="border border-gray-200 bg-gray-50 h-[500px] flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-scroll p-4 space-y-4">
             {messages.length > 0 ? (
               messages.map((message, index) => (
                 <div

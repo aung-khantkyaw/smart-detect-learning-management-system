@@ -12,6 +12,7 @@ export default function Quiz() {
   const [showResults, setShowResults] = useState(false);
   const [submissions, setSubmissions] = useState([]);
 
+
   useEffect(() => {
     fetchQuizzes();
     fetchSubmissions();
@@ -21,28 +22,14 @@ export default function Quiz() {
     const token = localStorage.getItem("accessToken");
     
     try {
-      // First get offering ID from course ID
-      const offeringsRes = await fetch(`http://localhost:3000/api/course-offerings`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const offeringsData = await offeringsRes.json();
-      const offerings = offeringsData.status === "success" ? offeringsData.data : [];
-      const offering = offerings.find(o => o.courseId === id);
-      
-      if (!offering) {
-        setQuizzes([]);
-        return;
-      }
-      
-      // Fetch quizzes for this offering
-      const res = await fetch(`http://localhost:3000/api/quizzes/offering/${offering.id}`, {
+      const res = await fetch(`http://localhost:3000/api/quizzes/course/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       if (res.ok) {
         const data = await res.json();
-        setQuizzes(Array.isArray(data) ? data : data.data || []);
+        const quizList = Array.isArray(data) ? data : data.data || [];
+        setQuizzes(quizList);
       } else {
         setQuizzes([]);
       }
@@ -56,10 +43,10 @@ export default function Quiz() {
 
   const fetchSubmissions = async () => {
     const token = localStorage.getItem("accessToken");
-    const userData = JSON.parse(localStorage.getItem("userData"));
+    const userData = JSON.parse(localStorage.getItem("userData") || '{}');
     
     try {
-      const res = await fetch(`http://localhost:3000/api/quiz-submissions/student/${userData.id}`, {
+      const res = await fetch(`http://localhost:3000/api/quizzes/submissions/user/${userData.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -72,12 +59,32 @@ export default function Quiz() {
     }
   };
 
-  const startQuiz = (quiz) => {
-    setSelectedQuiz(quiz);
-    setQuizStarted(true);
-    setCurrentQuestion(0);
-    setAnswers({});
-    setShowResults(false);
+  const isQuizSubmitted = (quizId) => {
+    return submissions.some(s => s.quizId === quizId);
+  };
+
+
+
+  const startQuiz = async (quiz) => {
+    const token = localStorage.getItem("accessToken");
+    
+    try {
+      // Fetch full quiz details with questions
+      const res = await fetch(`http://localhost:3000/api/quizzes/${quiz.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        const fullQuiz = await res.json();
+        setSelectedQuiz(fullQuiz);
+        setQuizStarted(true);
+        setCurrentQuestion(0);
+        setAnswers({});
+        setShowResults(false);
+      }
+    } catch (err) {
+      console.error("Error fetching quiz details:", err);
+    }
   };
 
   const handleAnswer = (questionId, answer) => {
@@ -96,9 +103,39 @@ export default function Quiz() {
     }
   };
 
-  const submitQuiz = () => {
-    setShowResults(true);
-    // Here you would normally submit to backend
+  const submitQuiz = async () => {
+    const token = localStorage.getItem("accessToken");
+    
+    try {
+      // Prepare answers in the format expected by backend
+      const formattedAnswers = Object.entries(answers).map(([questionId, selectedOptionId]) => ({
+        questionId,
+        selectedOptionIds: [selectedOptionId]
+      }));
+      
+      const res = await fetch(`http://localhost:3000/api/quizzes/${selectedQuiz.id}/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          answers: formattedAnswers
+        })
+      });
+      
+      if (res.ok) {
+        setShowResults(true);
+        fetchQuizzes();
+        fetchSubmissions();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to submit quiz');
+      }
+    } catch (err) {
+      console.error("Error submitting quiz:", err);
+      alert('Failed to submit quiz');
+    }
   };
 
   const backToQuizzes = () => {
@@ -107,10 +144,7 @@ export default function Quiz() {
     setShowResults(false);
   };
 
-  const getSubmissionStatus = (quizId) => {
-    const submission = submissions.find(s => s.quizId === quizId);
-    return submission ? { submitted: true, score: submission.score, status: submission.status } : { submitted: false };
-  };
+
 
   if (loading) {
     return (
@@ -262,14 +296,16 @@ export default function Quiz() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {quizzes.map((quiz) => {
-            const submission = getSubmissionStatus(quiz.id);
-            const isOpen = new Date() >= new Date(quiz.openAt) && new Date() <= new Date(quiz.closeAt);
+            const now = new Date();
+            const isOpen = (!quiz.openAt || now >= new Date(quiz.openAt)) && 
+                          (!quiz.closeAt || now <= new Date(quiz.closeAt));
+            const submitted = isQuizSubmitted(quiz.id);
             
             return (
               <div key={quiz.id} className="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">{quiz.title}</h3>
-                  {submission.submitted && (
+                  {submitted && (
                     <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
                       Completed
                     </span>
@@ -280,36 +316,26 @@ export default function Quiz() {
                 
                 <div className="space-y-2 text-sm text-gray-500 mb-4">
                   {quiz.openAt && (
-                    <div>Opens: {new Date(quiz.openAt).toLocaleString()}</div>
+                    <div>Opens: {new Date(quiz.openAt).toLocaleDateString()}</div>
                   )}
                   {quiz.closeAt && (
-                    <div>Closes: {new Date(quiz.closeAt).toLocaleString()}</div>
+                    <div>Closes: {new Date(quiz.closeAt).toLocaleDateString()}</div>
                   )}
                 </div>
                 
-                {submission.submitted ? (
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Your Score:</span>
-                      <span className="font-medium">{submission.score || 'Pending'}%</span>
-                    </div>
-                    <button className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-md">
-                      View Results
-                    </button>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={() => startQuiz(quiz)}
-                    disabled={!isOpen}
-                    className={`w-full py-2 px-4 rounded-md transition ${
-                      isOpen 
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {isOpen ? 'Start Quiz' : 'Not Available'}
-                  </button>
-                )}
+                <button 
+                  onClick={() => startQuiz(quiz)}
+                  disabled={!isOpen || submitted}
+                  className={`w-full py-2 px-4 rounded-md transition ${
+                    submitted 
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : isOpen 
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {submitted ? 'Already Submitted' : isOpen ? 'Start Quiz' : 'Not Available'}
+                </button>
               </div>
             );
           })}

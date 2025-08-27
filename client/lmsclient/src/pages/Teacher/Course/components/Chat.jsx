@@ -70,31 +70,34 @@ export default function Chat() {
     const token = localStorage.getItem("accessToken");
     
     try {
-      // Use the correct endpoint format: /:roomType/:roomId/messages
       const res = await fetch(`http://localhost:3000/api/chat-rooms/COURSE/${chatRoom.id}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      console.log("Messages response status:", res.status);
-      
       if (res.ok) {
         const data = await res.json();
-        console.log("Messages data:", data);
-        
-        // Handle different response formats
         let messagesList = [];
+        
         if (Array.isArray(data)) {
           messagesList = data;
         } else if (data.status === "success" && data.data) {
           messagesList = data.data;
-        } else if (data.messages) {
-          messagesList = data.messages;
         }
         
-        console.log("Processed messages:", messagesList);
-        setMessages(messagesList);
-      } else {
-        console.error("Failed to fetch messages:", res.status, res.statusText);
+        // Transform messages to ensure sender info is available
+        const transformedMessages = messagesList.map(msg => ({
+          id: msg.id,
+          message: msg.message,
+          fileUrl: msg.fileUrl,
+          createdAt: msg.createdAt,
+          senderId: msg.senderId || msg.sender?.id,
+          senderName: msg.sender?.fullName || msg.senderName || 'Unknown User'
+        }));
+        
+        // Sort messages by creation time (oldest first, newest last)
+        transformedMessages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        
+        setMessages(transformedMessages);
       }
     } catch (err) {
       console.error("Error fetching messages:", err);
@@ -184,7 +187,7 @@ export default function Chat() {
                 >
                   {message.senderId !== currentUser?.id && (
                     <div className="text-xs font-medium mb-1 opacity-75">
-                      {message.senderName || message.fullName || 'Unknown User'}
+                      {message.senderName}
                     </div>
                   )}
                   <div className="text-sm">{message.message}</div>

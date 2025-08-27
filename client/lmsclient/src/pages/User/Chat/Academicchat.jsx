@@ -1,102 +1,223 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function Academicchat() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [chatRoom, setChatRoom] = useState(null);
+  const messagesEndRef = useRef(null);
+  const currentUser = JSON.parse(localStorage.getItem("userData"));
 
   useEffect(() => {
-    const fetchAcademicChatRoom = async () => {
-      const token = localStorage.getItem("accessToken");
-      const userData = JSON.parse(localStorage.getItem("userData") || '{}');
-      
-      if (!token || !userData.id) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const res = await fetch(`http://localhost:3000/api/students/${userData.id}/academic-chat`, {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-        });
-        
-        const data = await res.json();
-        if (data.status === "success" && data.data.length > 0) {
-          const room = data.data[0][0];
-          setChatRoom(room);
-          setMessages([
-            { id: 1, sender: "System", text: `🎉 Welcome to ${room?.name || 'Academic Year Chat'}!` },
-          ]);
-        } else {
-          setMessages([
-            { id: 1, sender: "System", text: "🎉 Welcome to Academic Year Chat!" },
-          ]);
-        }
-      } catch (err) {
-        console.error("Error fetching academic chat room:", err);
-        setMessages([
-          { id: 1, sender: "System", text: "🎉 Welcome to Academic Year Chat!" },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAcademicChatRoom();
   }, []);
 
-  const sendMessage = () => {
-    if (newMessage.trim() === "") return;
-    setMessages([
-      ...messages,
-      { id: messages.length + 1, sender: "You", text: newMessage },
-    ]);
-    setNewMessage("");
+  useEffect(() => {
+    if (chatRoom) {
+      fetchMessages();
+      const interval = setInterval(fetchMessages, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [chatRoom]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const fetchAcademicChatRoom = async () => {
+    const token = localStorage.getItem("accessToken");
+    const userData = JSON.parse(localStorage.getItem("userData") || '{}');
+    
+    if (!token || !userData.academicYearId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/chat-rooms/academic`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const rooms = data.status === "success" ? data.data : data;
+        
+        // Find room for student's academic year
+        const room = rooms.find(r => r.academicYearId === userData.academicYearId);
+        
+        if (room) {
+          setChatRoom(room);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching academic chat room:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMessages = async () => {
+    if (!chatRoom) return;
+    
+    const token = localStorage.getItem("accessToken");
+    
+    try {
+      const res = await fetch(`http://localhost:3000/api/chat-rooms/ACADEMIC/${chatRoom.id}/messages`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        let messagesList = [];
+        
+        if (Array.isArray(data)) {
+          messagesList = data;
+        } else if (data.status === "success" && data.data) {
+          messagesList = data.data;
+        }
+        
+        const transformedMessages = messagesList.map(msg => ({
+          id: msg.id,
+          message: msg.message,
+          fileUrl: msg.fileUrl,
+          createdAt: msg.createdAt,
+          senderId: msg.senderId || msg.sender?.id,
+          senderName: msg.sender?.fullName || msg.senderName || 'Unknown User'
+        }));
+        
+        transformedMessages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        setMessages(transformedMessages);
+      }
+    } catch (err) {
+      console.error("Error fetching messages:", err);
+    }
+  };
+
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    
+    if (!newMessage.trim() || !chatRoom) return;
+    
+    const token = localStorage.getItem("accessToken");
+    
+    try {
+      const res = await fetch(`http://localhost:3000/api/chat-rooms/send-message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          roomType: "ACADEMIC",
+          roomId: chatRoom.id,
+          senderId: currentUser?.id,
+          message: newMessage
+        })
+      });
+      
+      if (res.ok) {
+        setNewMessage("");
+        fetchMessages();
+      }
+    } catch (err) {
+      console.error("Send message error:", err);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="p-6 min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading academic chat...</div>
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!chatRoom) {
+    return (
+      <div className="p-8 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6">
+            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Academic Year Chat</span>
+          </div>
+          <div className="border border-gray-200 p-8 bg-gray-50 text-center">
+            <h3 className="text-sm font-medium text-gray-900">No academic chat room available</h3>
+            <p className="mt-1 text-sm text-gray-500">Academic year chat room is not set up yet.</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6  min-h-screen flex flex-col">
-      <h1 className="text-2xl font-bold mb-6">🏫 {chatRoom?.name || 'Academic Year Chat'}</h1>
+    <div className="p-8 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Academic Year Chat</span>
+        </div>
+        
+        <h2 className="text-xl font-bold text-gray-900 mb-4">{chatRoom.name}</h2>
 
-      {/* Chat Box */}
-      <div className="flex-1 bg-white p-4 rounded shadow overflow-y-auto mb-4 space-y-3">
-        {messages.map((msg) => (
-          <div key={msg.id}>
-            <span className="font-semibold">{msg.sender}:</span>{" "}
-            <span>{msg.text}</span>
+        <div className="border border-gray-200 bg-gray-50 h-[500px] flex flex-col">
+          <div className="flex-1 overflow-y-scroll p-4 space-y-4">
+            {messages.length > 0 ? (
+              messages.map((message, index) => (
+                <div
+                  key={message.id || `message-${index}`}
+                  className={`flex ${
+                    message.senderId === currentUser?.id ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-md ${
+                      message.senderId === currentUser?.id
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-gray-900 border border-gray-200"
+                    }`}
+                  >
+                    {message.senderId !== currentUser?.id && (
+                      <div className="text-xs font-medium mb-1 text-gray-600">
+                        {message.senderName || 'Unknown User'}
+                      </div>
+                    )}
+                    <div className="text-sm">{message.message}</div>
+                    <div className="text-xs mt-1 opacity-75">
+                      {new Date(message.createdAt).toLocaleTimeString()}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                <p>No messages yet. Start the conversation!</p>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-        ))}
-      </div>
 
-      {/* Input Section */}
-     <div className="mt-4 flex">
-        <input
-          type="text"
-          className="flex-1 p-3 rounded-l-lg border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
-          placeholder="Type your message..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-        />
-        <button
-          onClick={sendMessage}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6 rounded-r-lg transition"
-        >
-          Send
-        </button>
+          <div className="p-4 border-t border-gray-200 bg-white">
+            <form onSubmit={sendMessage} className="flex space-x-2">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type your message..."
+                className="flex-1 px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
+              />
+              <button
+                type="submit"
+                disabled={!newMessage.trim()}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                Send
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
-  )
+  );
 }

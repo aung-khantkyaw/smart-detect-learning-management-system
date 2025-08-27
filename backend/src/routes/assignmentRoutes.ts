@@ -10,6 +10,8 @@ import {
   getStudentSubmissions,
   gradeSubmission,
   getAllAssignments,
+  getStudentAllSubmissions,
+  getAssignmentsForStudent,
 } from '../controllers/assignmentController';
 import { authenticateToken, requireAdminOrTeacher, requireStudent } from '../middleware/auth';
 
@@ -47,5 +49,11 @@ router.patch('/submissions/:submissionId/grade', requireAdminOrTeacher, gradeSub
 
 // Teacher: get all submissions for an assignment
 router.get('/:id/submissions', requireAdminOrTeacher, getAssignmentSubmissions);
+
+// Get all submissions for a student
+router.get('/submissions/student/:studentId', getStudentAllSubmissions);
+
+// Get assignments for student by course ID
+router.get('/course/:courseId', getAssignmentsForStudent);
 
 export default router;
