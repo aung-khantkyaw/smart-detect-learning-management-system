@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 
 export default function Chat() {
-  const { id } = useParams(); // course offering ID
+  const { id } = useParams();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -17,7 +17,6 @@ export default function Chat() {
   useEffect(() => {
     if (chatRoom) {
       fetchMessages();
-      // Set up polling for new messages
       const interval = setInterval(fetchMessages, 3000);
       return () => clearInterval(interval);
     }
@@ -31,42 +30,39 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-
-
   const fetchChatRoom = async () => {
     const token = localStorage.getItem("accessToken");
-    const userData = JSON.parse(localStorage.getItem("userData") || '{}');
+    
+    console.log("Course ID:", id);
     
     try {
-      // Get student's course chat rooms
-      const res = await fetch(`http://localhost:3000/api/students/${userData.id}/course-chat-rooms`, {
+      const offeringsRes = await fetch(`http://localhost:3000/api/course-offerings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      if (!res.ok) {
-        console.error("Failed to fetch chat rooms:", res.status);
-        return;
-      }
+      const offeringsData = await offeringsRes.json();
+      console.log("Offerings data:", offeringsData);
       
-      const data = await res.json();
-      console.log("Student chat rooms response:", data);
+      const offerings = offeringsData.status === "success" ? offeringsData.data : [];
+      const offering = offerings.find(o => o.courseId === id);
+      console.log("Found offering:", offering);
       
-      if (data.status === "success" && data.data.length > 0) {
-        // Find chat room for this offering
-        const chatRoomData = data.data.find(item => {
-          const room = Array.isArray(item) ? item[0] : item;
-          return room && room.offeringId === id;
+      if (offering) {
+        const res = await fetch(`http://localhost:3000/api/chat-rooms/course`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
         
-        if (chatRoomData) {
-          const room = Array.isArray(chatRoomData) ? chatRoomData[0] : chatRoomData;
-          console.log("Found chat room:", room);
+        console.log("Chat rooms response status:", res.status);
+        const data = await res.json();
+        console.log("Chat rooms data:", data);
+        
+        const rooms = data.status === "success" ? data.data : [];
+        const room = rooms.find(r => r.offeringId === offering.id);
+        console.log("Found chat room:", room);
+        
+        if (room) {
           setChatRoom(room);
-        } else {
-          console.log("No chat room found for offering:", id);
         }
-      } else {
-        console.log("No chat rooms available for student");
       }
     } catch (err) {
       console.error("Error fetching chat room:", err);
@@ -80,8 +76,9 @@ export default function Chat() {
     
     const token = localStorage.getItem("accessToken");
     
+    console.log("Fetching messages for chat room:", chatRoom.id);
+    
     try {
-      // Use the correct endpoint format: /:roomType/:roomId/messages
       const res = await fetch(`http://localhost:3000/api/chat-rooms/COURSE/${chatRoom.id}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -92,31 +89,27 @@ export default function Chat() {
         const data = await res.json();
         console.log("Messages data:", data);
         
-        // Handle different response formats
         let messagesList = [];
+        
         if (Array.isArray(data)) {
           messagesList = data;
         } else if (data.status === "success" && data.data) {
           messagesList = data.data;
-        } else if (data.messages) {
-          messagesList = data.messages;
         }
         
-        // Transform messages to match expected format
         const transformedMessages = messagesList.map(msg => ({
           id: msg.id,
           message: msg.message,
           fileUrl: msg.fileUrl,
           createdAt: msg.createdAt,
           senderId: msg.sender?.id,
-          senderName: msg.sender?.fullName,
-          fullName: msg.sender?.fullName
+          senderName: msg.sender?.fullName
         }));
         
-        console.log("Processed messages:", transformedMessages);
+        console.log("Transformed messages:", transformedMessages);
         setMessages(transformedMessages);
       } else {
-        console.error("Failed to fetch messages:", res.status, res.statusText);
+        console.error("Failed to fetch messages:", res.status, await res.text());
       }
     } catch (err) {
       console.error("Error fetching messages:", err);
@@ -147,14 +140,10 @@ export default function Chat() {
       
       if (res.ok) {
         setNewMessage("");
-        fetchMessages(); // Refresh messages
-      } else {
-        const error = await res.json();
-        alert(error.message || "Failed to send message");
+        fetchMessages();
       }
     } catch (err) {
       console.error("Send message error:", err);
-      alert("Failed to send message");
     }
   };
 
@@ -168,93 +157,84 @@ export default function Chat() {
 
   if (!chatRoom) {
     return (
-      <div className="p-6 text-center">
-        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No chat room available</h3>
-        <p className="mt-1 text-sm text-gray-500">Chat room for this course is not set up yet.</p>
+      <div className="p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-3">
+            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Course Chat</span>
+          </div>
+          <div className="border border-gray-200 p-8 bg-gray-50 text-center">
+            <h3 className="text-sm font-medium text-gray-900">No chat room available</h3>
+            <p className="mt-1 text-sm text-gray-500">Chat room for this course is not set up yet.</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-[500px] flex flex-col">
-        {/* Chat Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Course Chat Room</h2>
-          <p className="text-sm text-gray-500">{chatRoom.name}</p>
+    <div className="p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-3">
+          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Course Chat</span>
         </div>
+        
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Course Chat Room</h2>
 
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length > 0 ? (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.senderId === currentUser?.id ? "justify-end" : "justify-start"
-                }`}
-              >
+        <div className="border border-gray-200 bg-gray-50 h-[500px] flex flex-col">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.length > 0 ? (
+              messages.map((message, index) => (
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    message.senderId === currentUser?.id
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-900"
+                  key={message.id || `message-${index}`}
+                  className={`flex ${
+                    message.senderId === currentUser?.id ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {message.senderId !== currentUser?.id && (
-                    <div className="text-xs font-medium mb-1 opacity-75">
-                      {message.senderName || message.fullName || 'Unknown User'}
+                  <div
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-md ${
+                      message.senderId === currentUser?.id
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-gray-900 border border-gray-200"
+                    }`}
+                  >
+                    {message.senderId !== currentUser?.id && (
+                      <div className="text-xs font-medium mb-1 text-gray-600">
+                        {message.senderName || 'Unknown User'}
+                      </div>
+                    )}
+                    <div className="text-sm">{message.message}</div>
+                    <div className="text-xs mt-1 opacity-75">
+                      {new Date(message.createdAt).toLocaleTimeString()}
                     </div>
-                  )}
-                  <div className="text-sm">{message.message}</div>
-                  {message.fileUrl && (
-                    <div className="mt-2">
-                      <a
-                        href={message.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs underline opacity-75 hover:opacity-100"
-                      >
-                        📎 Download File
-                      </a>
-                    </div>
-                  )}
-                  <div className="text-xs mt-1 opacity-75">
-                    {new Date(message.createdAt).toLocaleTimeString()}
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                <p>No messages yet. Start the conversation!</p>
               </div>
-            ))
-          ) : (
-            <div className="text-center text-gray-500 py-8">
-              <p>No messages yet. Start the conversation!</p>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
-        {/* Message Input - Fixed at bottom */}
-        <div className="px-4 py-4 border-t border-gray-200 bg-white">
-          <form onSubmit={sendMessage} className="flex space-x-2">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoComplete="off"
-            />
-            <button
-              type="submit"
-              disabled={!newMessage.trim()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >
-              Send
-            </button>
-          </form>
+          <div className="p-4 border-t border-gray-200 bg-white">
+            <form onSubmit={sendMessage} className="flex space-x-2">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type your message..."
+                className="flex-1 px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
+              />
+              <button
+                type="submit"
+                disabled={!newMessage.trim()}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                Send
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

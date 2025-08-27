@@ -13,26 +13,50 @@ export default function Materials() {
   const fetchMaterials = async () => {
     const token = localStorage.getItem("accessToken");
     
+    console.log("ID from params:", id);
+    
     try {
-      const res = await fetch(`http://localhost:3000/api/materials/offering/${id}`, {
+      // Try direct fetch first - maybe id is already offering ID
+      const directRes = await fetch(`http://localhost:3000/api/materials/offering/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      if (!res.ok) {
-        console.error("Failed to fetch materials:", res.status, res.statusText);
-        setMaterials([]);
-        return;
+      if (directRes.ok) {
+        const directData = await directRes.json();
+        console.log("Direct materials data:", directData);
+        
+        if (Array.isArray(directData)) {
+          setMaterials(directData);
+          return;
+        }
       }
       
-      const data = await res.json();
+      // If direct fetch fails, try finding offering by course ID
+      const offeringsRes = await fetch(`http://localhost:3000/api/course-offerings`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
-      if (Array.isArray(data)) {
-        setMaterials(data);
-      } else if (data.status === "success") {
-        setMaterials(Array.isArray(data.data) ? data.data : []);
-      } else {
-        console.error("Materials API error:", data.message || 'Unknown error');
-        setMaterials([]);
+      const offeringsData = await offeringsRes.json();
+      console.log("Offerings data:", offeringsData);
+      
+      if (offeringsData.status === "success") {
+        const offering = offeringsData.data.find(o => o.courseId === id);
+        console.log("Found offering:", offering);
+        
+        if (offering) {
+          const materialsRes = await fetch(`http://localhost:3000/api/materials/offering/${offering.id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          if (materialsRes.ok) {
+            const materialsData = await materialsRes.json();
+            console.log("Materials data:", materialsData);
+            
+            if (Array.isArray(materialsData)) {
+              setMaterials(materialsData);
+            }
+          }
+        }
       }
     } catch (err) {
       console.error("Error fetching materials:", err);
@@ -41,6 +65,7 @@ export default function Materials() {
       setLoading(false);
     }
   };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -50,59 +75,51 @@ export default function Materials() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">
-        Materials
-      </h1>
-
-      {materials.length === 0 ? (
-        <p className="text-gray-700 dark:text-gray-300">
-          No materials available at the moment.
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {materials.map((material) => (
-            <div
-              key={material.id}
-              className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 flex flex-col justify-between hover:shadow-xl transition"
-            >
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {material.title}
-                </h2>
-                <p className="text-gray-600 dark:text-gray-300 mt-2 line-clamp-3">
-                  {material.description || "No description provided."}
-                </p>
-                <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
-                  Created at: {new Date(material.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-
-              <div className="mt-4 flex space-x-2">
-                {material.fileUrl && (
-                  <>
-                    <a
-                      href={material.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 text-center bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition"
-                    >
-                      View
-                    </a>
-                    <a
-                      href={material.fileUrl}
-                      download
-                      className="flex-1 text-center bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 hover:bg-green-600 text-white py-2 px-4 rounded-md transition"
-                    >
-                      Download
-                    </a>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
+    <div className="p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-3">
+          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Materials</span>
         </div>
-      )}
+        
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Course Materials</h2>
+
+        <div className="border border-gray-200 bg-gray-50">
+          {materials.length > 0 ? (
+            <div className="divide-y divide-gray-200">
+              {materials.map((material) => (
+                <div key={material.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-medium text-gray-900">{material.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{material.description || "No description provided."}</p>
+                      <div className="flex items-center mt-2 text-sm text-gray-500">
+                        <span>Uploaded: {new Date(material.createdAt).toLocaleDateString()}</span>
+                        {material.fileUrl && (
+                          <span className="ml-4">
+                            <a 
+                              href={material.fileUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              Download File
+                            </a>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <h3 className="text-sm font-medium text-gray-900">No materials available</h3>
+              <p className="mt-1 text-sm text-gray-500">There are no materials uploaded for this course yet.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,14 +1,8 @@
 import React, { useState } from "react";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Brain, Sparkles } from "lucide-react";
+import { api } from "../lib/api";
 
-import brain from '../assets/img/brain.png'
-import bulb from '../assets/img/bulb.png'
-import coffee from '../assets/img/coffee.png'
-import cross from '../assets/img/cross.png'
-import line from '../assets/img/line.png'
-import line2 from '../assets/img/line2.png'
-
-export default function LoginForm({ onSubmit }) {
+export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -21,142 +15,134 @@ export default function LoginForm({ onSubmit }) {
     setErrors({});
 
     try {
-      const res = await fetch("http://localhost:3000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const data = await api.post("/auth/login", { email, password });
 
-      
-  const data = await res.json();
+      localStorage.setItem("role", data.role);
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("userData", JSON.stringify(data));
 
-      if (res.ok && data.status === "success") {
-    
-      // localStorage.setItem("token", data.data.accessToken);
-      localStorage.setItem("role", data.data.role);
-     
-      localStorage.setItem("accessToken", data.data.accessToken);
-      localStorage.setItem("userData", JSON.stringify(data.data));
-      
-     if(data.data.role === 'ADMIN'){
-        window.location.href = "/admin/departments";
-     }
-     if(data.data.role == 'STUDENT'){
+      if (data.role === 'ADMIN') {
+        window.location.href = "/admin";
+      } else if (data.role === 'STUDENT') {
         window.location.href = "/dashboard";
-      }
-     if(data.data.role == 'TEACHER'){
+      } else if (data.role === 'TEACHER') {
         window.location.href = "/teacher";
+      } else {
+        window.location.href = "/";
       }
-    } else {
-      setErrors(data.message || "Login failed");
-    }
   } catch (err) {
-    setErrors("Something went wrong");
+    setErrors(err?.message || "Login failed");
   } finally {
     setLoading(false);
   }
 };
 
   return (
- <div className='m-2 h-[96vh] relative bg-[#5C85D9] text-white rounded-lg '>
-      {/* // Hero Section Background  */}
-            <img src={bulb} className='absolute h-10 top-24 left-8'></img>
-            <img src={brain} className='absolute h-10 top-80 right-72'></img>
-            <img src={coffee} className='absolute h-10 top-44 right-28'></img>
-            <img src={cross} className='absolute h-30 top-64 left-52'></img>
-            <img src={line} className='absolute bottom-0 h-42 w-46 left-52'></img>
-            <img src={line2} className='absolute right-0 top-[42px] h-[550px] w-120'></img>
-          
-         
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-800">
+      {/* Navigation */}
+      <nav className="bg-white/10 backdrop-blur-md border-b border-white/20">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Brain className="w-8 h-8 text-white" />
+            <span className="text-2xl font-bold text-white">Smart LMS</span>
+          </div>
+        </div>
+      </nav>
 
-    <div className="flex items-center justify-center p-4 pt-32 text-zinc-100">
-      <div className="w-full max-w-sm">
-        {/* Card */}
-        <div className="p-6 backdrop-blur-xl rounded-2xl sm:p-8">
-          <div className="mb-6 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">Welcome to LMS</h1>
-            {/* <p className="mt-1 text-sm text-zinc-400">Sign in to your account</p> */}
+      {/* Login Section */}
+      <div className="flex items-center justify-center px-6 py-20">
+        <div className="w-full max-w-md">
+          {/* Welcome Badge */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-white/20 text-blue-100 px-4 py-2 rounded-full text-sm mb-6">
+              <Sparkles className="w-4 h-4" />
+              Welcome Back
+            </div>
+            <h1 className="text-4xl font-bold text-white mb-2">Sign In</h1>
+            <p className="text-blue-100">Access your learning dashboard</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            {/* Email */}
-            <label className="block group">
-              <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 focus-within:border-zinc-600 px-3 py-2.5 transition-colors">
-                <Mail className="size-4 text-zinc-500" aria-hidden />
-                <input
-                  type="email"
-                  autoComplete="email"
-                  placeholder="Email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full text-sm bg-transparent outline-none placeholder:text-zinc-500"
-                />
+          {/* Login Card */}
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-2xl">
+            <form onSubmit={handleLogin} className="space-y-6">
+              {/* Email */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-blue-100">Email Address</label>
+                <div className="relative">
+                  <div className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/5 focus-within:border-blue-400 focus-within:bg-white/10 px-4 py-3 transition-all">
+                    <Mail className="w-5 h-5 text-blue-200" />
+                    <input
+                      type="email"
+                      autoComplete="email"
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-transparent outline-none text-white placeholder:text-blue-200"
+                    />
+                  </div>
+                  {errors.email && (
+                    <span className="block mt-1 text-xs text-red-300">{errors.email}</span>
+                  )}
+                </div>
               </div>
-              {errors.email && (
-                <span className="block mt-1 text-xs text-red-400">{errors.email}</span>
-              )}
-            </label>
 
-            {/* Password */}
-            <label className="block group">
-              <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 focus-within:border-zinc-600 px-3 py-2.5 transition-colors">
-                <Lock className="size-4 text-zinc-500" aria-hidden />
-                <input
-                  type={showPw ? "text" : "password"}
-                  autoComplete="current-password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full text-sm bg-transparent outline-none placeholder:text-zinc-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((s) => !s)}
-                  className="p-1 -mr-1 rounded-md hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-600"
-                  aria-label={showPw ? "Hide password" : "Show password"}
-                >
-                  {showPw ? <EyeOff className="size-4 text-zinc-400" /> : <Eye className="size-4 text-zinc-400" />}
-                </button>
+              {/* Password */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-blue-100">Password</label>
+                <div className="relative">
+                  <div className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/5 focus-within:border-blue-400 focus-within:bg-white/10 px-4 py-3 transition-all">
+                    <Lock className="w-5 h-5 text-blue-200" />
+                    <input
+                      type={showPw ? "text" : "password"}
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-transparent outline-none text-white placeholder:text-blue-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw((s) => !s)}
+                      className="p-1 rounded-md hover:bg-white/10 transition-colors"
+                      aria-label={showPw ? "Hide password" : "Show password"}
+                    >
+                      {showPw ? <EyeOff className="w-5 h-5 text-blue-200" /> : <Eye className="w-5 h-5 text-blue-200" />}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <span className="block mt-1 text-xs text-red-300">{errors.password}</span>
+                  )}
+                </div>
               </div>
-              {errors.password && (
-                <span className="block mt-1 text-xs text-red-400">{errors.password}</span>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-white text-blue-600 py-3 rounded-xl font-semibold hover:bg-gray-50 hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" opacity="0.25" />
+                      <path d="M22 12a10 10 0 0 1-10 10" />
+                    </svg>
+                    Signing in…
+                  </span>
+                ) : (
+                  "Sign In to Dashboard"
+                )}
+              </button>
+
+              {/* Error Display */}
+              {typeof errors === 'string' && (
+                <div className="bg-red-500/20 border border-red-400/30 text-red-200 px-4 py-3 rounded-xl text-sm">
+                  {errors}
+                </div>
               )}
-            </label>
-
-            {/* Actions
-            <div className="flex items-center justify-between pt-2">
-              <label className="inline-flex items-center gap-2 text-xs select-none text-zinc-400">
-                <input type="checkbox" className="rounded size-4 border-zinc-700 bg-zinc-900 text-zinc-200 focus:ring-0" />
-                Remember me
-              </label>
-              <a href="#" className="text-xs transition-colors text-zinc-300 hover:text-white">Forgot password?</a>
-            </div> */}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-2 inline-flex items-center justify-center rounded-xl bg-white text-black font-medium py-2.5 disabled:opacity-60 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-            >
-              {loading ? (
-                <span className="inline-flex items-center gap-2">
-                  <svg className="size-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" opacity="0.25" /><path d="M22 12a10 10 0 0 1-10 10" /></svg>
-                  Signing in…
-                </span>
-              ) : (
-                "Sign in"
-              )}
-            </button>
-          </form>
-
-          {/* Footer */}
-          {/* <p className="mt-6 text-xs text-center text-zinc-500">
-            Don't have an account?{" "}
-            <a href="#" className="text-zinc-300 hover:text-white">Create one</a>
-          </p> */}
+            </form>
+          </div>
         </div>
       </div>
     </div>
-    </div>
-
   );
 }

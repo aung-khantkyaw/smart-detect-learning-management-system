@@ -1,86 +1,123 @@
 import React from "react";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
+import { BookOpen, User, Bell, LogOut, Brain } from "lucide-react";
 
 export default function TeacherDashboard() {
   const location = useLocation();
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-800">Teacher Portal</h2>
-        </div>
-        
-        <nav className="mt-6">
-          <ul className="space-y-2 px-4">
-            <li>
-              <NavLink
-                to="/teacher"
-                end
-                className={({ isActive }) =>
-                  `flex items-center p-3 rounded-lg transition-colors ${
-                    isActive ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100"
-                  }`
-                }
-              >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-                My Courses
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/teacher/profile"
-                className={({ isActive }) =>
-                  `flex items-center p-3 rounded-lg transition-colors ${
-                    isActive ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100"
-                  }`
-                }
-              >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Profile
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/teacher/notifications"
-                className={({ isActive }) =>
-                  `flex items-center p-3 rounded-lg transition-colors ${
-                    isActive ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100"
-                  }`
-                }
-              >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4 19h6v-2H4v2zM4 15h8v-2H4v2zM4 11h8V9H4v2z" />
-                </svg>
-                Notifications
-              </NavLink>
-            </li>
-            <li>
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-purple-50">
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        <div className="w-72 bg-white/80 backdrop-blur-md border-r border-gray-200 shadow-lg">
+          {/* Logo Section */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-xl">
+                <Brain className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Smart LMS</h2>
+                <p className="text-sm text-gray-600">Teacher Portal</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Navigation */}
+          <nav className="mt-8 px-4">
+            <ul className="space-y-2">
+              <li>
+                <NavLink
+                  to="/teacher"
+                  end
+                  className={({ isActive }) =>
+                    `group flex items-center p-3 rounded-xl transition-all ${
+                      isActive 
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border border-blue-200 shadow-sm" 
+                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    }`
+                  }
+                >
+                  <div className={`p-2 rounded-lg mr-3 transition-colors ${
+                    location.pathname === "/teacher" 
+                      ? "bg-blue-100" 
+                      : "bg-gray-100 group-hover:bg-gray-200"
+                  }`}>
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <span className="font-medium">My Courses</span>
+                </NavLink>
+              </li>
+              
+              <li>
+                <NavLink
+                  to="/teacher/profile"
+                  className={({ isActive }) =>
+                    `group flex items-center p-3 rounded-xl transition-all ${
+                      isActive 
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border border-blue-200 shadow-sm" 
+                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    }`
+                  }
+                >
+                  <div className={`p-2 rounded-lg mr-3 transition-colors ${
+                    location.pathname === "/teacher/profile" 
+                      ? "bg-blue-100" 
+                      : "bg-gray-100 group-hover:bg-gray-200"
+                  }`}>
+                    <User className="w-5 h-5" />
+                  </div>
+                  <span className="font-medium">Profile</span>
+                </NavLink>
+              </li>
+              
+              <li>
+                <NavLink
+                  to="/teacher/notifications"
+                  className={({ isActive }) =>
+                    `group flex items-center p-3 rounded-xl transition-all ${
+                      isActive 
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border border-blue-200 shadow-sm" 
+                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    }`
+                  }
+                >
+                  <div className={`p-2 rounded-lg mr-3 transition-colors ${
+                    location.pathname === "/teacher/notifications" 
+                      ? "bg-blue-100" 
+                      : "bg-gray-100 group-hover:bg-gray-200"
+                  }`}>
+                    <Bell className="w-5 h-5" />
+                  </div>
+                  <span className="font-medium">Notifications</span>
+                </NavLink>
+              </li>
+            </ul>
+            
+            {/* Logout Button */}
+            <div className="mt-8 pt-8 border-t border-gray-200">
               <button
                 onClick={() => {
                   localStorage.clear();
                   window.location.href = "/login";
                 }}
-                className="w-full flex items-center p-3 rounded-lg transition-colors text-gray-600 hover:bg-red-50 hover:text-red-600"
+                className="w-full group flex items-center p-3 rounded-xl transition-all text-gray-700 hover:bg-red-50 hover:text-red-600"
               >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Logout
+                <div className="p-2 rounded-lg mr-3 bg-gray-100 group-hover:bg-red-100 transition-colors">
+                  <LogOut className="w-5 h-5" />
+                </div>
+                <span className="font-medium">Logout</span>
               </button>
-            </li>
-          </ul>
-        </nav>
-      </div>
+            </div>
+          </nav>
+        </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <Outlet />
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full bg-white/60 backdrop-blur-sm">
+            <Outlet />
+          </div>
+        </div>
       </div>
     </div>
   );
