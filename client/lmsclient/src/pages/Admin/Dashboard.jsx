@@ -13,7 +13,7 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("user");
+      const raw = localStorage.getItem("userData");
       if (raw) setAuthUser(JSON.parse(raw));
     } catch {
       setAuthUser(null);
@@ -502,7 +502,7 @@ export default function Home() {
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex items-center justify-center text-sm font-semibold ring-1 ring-gray-200 shadow-sm">
                     {(() => {
                       const src = (
-                        authUser?.name ||
+                        authUser?.fullName ||
                         authUser?.username ||
                         authUser?.email ||
                         "U"
@@ -519,10 +519,10 @@ export default function Home() {
                   </div>
                   <div className="min-w-0 text-left">
                     <div className="text-sm font-semibold text-gray-900 truncate">
-                      {authUser?.name || authUser?.username || "Admin"}
+                      {authUser?.fullName || authUser?.username || "Admin"}
                     </div>
                     <div className="text-xs text-gray-500 truncate">
-                      {authUser?.email || authUser?.role || ""}
+                      {authUser?.email ? authUser.email : ""}
                     </div>
                   </div>
                   <svg
@@ -546,28 +546,11 @@ export default function Home() {
                 {userMenuOpen && (
                   <div
                     role="menu"
-                    className="absolute left-0 right-0 bottom-full mb-2 rounded-md border border-gray-200 bg-white shadow-lg overflow-hidden z-50"
+                    className="absolute right-0 bottom-full mb-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5 overflow-hidden z-50"
                   >
                     <button
                       type="button"
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => setUserMenuOpen(false)}
-                      role="menuitem"
-                    >
-                      <svg
-                        className="h-4 w-4 text-gray-400"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M12 12a5 5 0 100-10 5 5 0 000 10z" />
-                        <path d="M2 20a10 10 0 1120 0v1H2v-1z" />
-                      </svg>
-                      View profile
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-rose-600 hover:bg-rose-50"
                       onClick={handleLogout}
                       role="menuitem"
                     >
@@ -580,7 +563,7 @@ export default function Home() {
                         <path d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15" />
                         <path d="M12 9l3 3-3 3m3-3H3" />
                       </svg>
-                      Logout
+                      Sign out
                     </button>
                   </div>
                 )}
