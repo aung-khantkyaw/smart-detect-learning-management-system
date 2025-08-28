@@ -576,16 +576,6 @@ export default function AdminOverview() {
     );
   }
 
-  const totalStudents = users.filter(
-    (u) => String(u.role || "").toLowerCase() === "student"
-  ).length;
-  const totalTeachers = users.filter(
-    (u) => String(u.role || "").toLowerCase() === "teacher"
-  ).length;
-  const totalAdmins = users.filter(
-    (u) => String(u.role || "").toLowerCase() === "admin"
-  ).length;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">

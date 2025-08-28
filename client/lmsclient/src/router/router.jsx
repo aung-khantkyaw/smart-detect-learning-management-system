@@ -40,11 +40,13 @@ import MyCourses from "../pages/Teacher/MyCourses.jsx";
 import TeacherProfile from "../pages/Teacher/Profile.jsx";
 import TeacherCourseDetails from "../pages/Teacher/Course/CourseDetails.jsx";
 import TeacherOverview from "../pages/Teacher/Course/components/Overview.jsx";
-import TeacherMaterials from "../pages/Teacher/Materials.jsx";
+import TeacherMaterials from "../pages/Teacher/Course/components/Materials.jsx";
 import Students from "../pages/Teacher/Course/components/Students.jsx";
 import Quizzes from "../pages/Teacher/Course/components/Quizzes.jsx";
 import TeacherChat from "../pages/Teacher/Course/components/Chat.jsx";
 import TAssignments from "../pages/Teacher/Course/components/Assignments.jsx";
+import TeacherAnnoucements from "../pages/Teacher/Course/components/Announcements.jsx";
+import TNotifications from "../pages/Teacher/Notifications/Notifications.jsx";
 
 const router = createBrowserRouter([
   {
@@ -75,7 +77,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <CoursePage /> },
       { path: "profile", element: <Profile /> },
-      { path: "notification", element: <Notifications /> },
+      { path: "notifications", element: <Notifications /> },
       { path: "chat", element: <UserChat /> },
       { path: "academic-chat", element: <AChat /> }, //need with course-id for dbms
 
@@ -120,6 +122,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <MyCourses /> },
       { path: "profile", element: <TeacherProfile /> },
+      { path: "notifications", element: <TNotifications /> },
       {
         path: "courses/:id",
         element: <TeacherCourseDetails />,
@@ -130,6 +133,7 @@ const router = createBrowserRouter([
           { path: "quizzes", element: <Quizzes /> },
           { path: "assignments", element: <TAssignments /> },
           { path: "chat", element: <TeacherChat /> },
+          { path: "announcements", element: <TeacherAnnoucements /> },
         ],
       },
     ],

@@ -6,6 +6,7 @@ import { relations } from 'drizzle-orm';
 export const userRoleEnum = pgEnum('user_role', ['ADMIN', 'TEACHER', 'STUDENT']);
 export const submissionStatusEnum = pgEnum('submission_status', ['PENDING', 'SUBMITTED', 'GRADED', 'REJECTED_AI']);
 export const quizQuestionTypeEnum = pgEnum('quiz_question_type', ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'SHORT_TEXT']);
+export const assignmentQuestionTypeEnum = pgEnum('assignment_question_type', ['TEXT', 'PDF']);
 
 // === Tables === //
 
@@ -218,6 +219,9 @@ export const assignments = pgTable('assignments', {
   offeringId: uuid('offering_id').notNull().references(() => courseOfferings.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   description: text('description'),
+  questionType: assignmentQuestionTypeEnum('question_type').notNull().default('TEXT'),
+  questionText: text('question_text'),
+  questionFileUrl: text('question_file_url'),
   dueAt: timestamp('due_at'),
   createdAt: timestamp('created_at').notNull().defaultNow()
 });
@@ -228,9 +232,8 @@ export const assignmentSubmissions = pgTable('assignment_submissions', {
   assignmentId: uuid('assignment_id').notNull().references(() => assignments.id, { onDelete: 'cascade' }),
   studentId: uuid('student_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   submittedAt: timestamp('submitted_at'),
-  fileUrl: text('file_url'),
   textAnswer: text('text_answer'),
-  aiScore: numeric('ai_score', { precision: 5, scale: 2 }),
+  score: numeric('score'),
   status: submissionStatusEnum('status').notNull().default('PENDING'),
   attemptNumber: integer('attempt_number').notNull().default(1)
 }, (table) => ({

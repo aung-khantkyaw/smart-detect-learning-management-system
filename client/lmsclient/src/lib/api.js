@@ -110,3 +110,54 @@ export const api = {
   del: (path, body, options) =>
     request(path, { ...options, method: "DELETE", body }),
 };
+
+// Multipart/form-data helpers (do not JSON.stringify and do not set Content-Type)
+async function requestForm(path, { method = "POST", headers = {}, formData } = {}) {
+  const token = getToken();
+  const url = `${BASE_URL}/${String(path).replace(/^\//, "")}`;
+
+  const res = await fetch(url, {
+    method,
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
+    },
+    body: formData,
+  });
+
+  let data;
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) {
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+  } else {
+    data = await res.text().catch(() => null);
+  }
+
+  if (res.status === 401) {
+    try {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+    } catch {}
+    if (typeof window !== "undefined") window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
+
+  if (!res.ok) {
+    const msg = (data && (data.message || data.error)) || `Request failed with status ${res.status}`;
+    throw new Error(msg);
+  }
+
+  if (data && typeof data === "object") {
+    if (data.status === "success" && "data" in data) return data.data;
+    if ("data" in data) return data.data;
+  }
+  return data;
+}
+
+api.postForm = (path, formData, options) => requestForm(path, { ...options, method: "POST", formData });
+api.putForm = (path, formData, options) => requestForm(path, { ...options, method: "PUT", formData });

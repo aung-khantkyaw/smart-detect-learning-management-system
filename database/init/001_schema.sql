@@ -275,5 +275,5 @@ CREATE TRIGGER announcements_updated_at BEFORE UPDATE ON announcements FOR EACH 
 
 -- Seed an admin user placeholder (password hash to be replaced by app)
 INSERT INTO users (username, email, password, role, full_name)
-VALUES ('admin', 'admin@example.com', 'Admin@sdlms2025', 'ADMIN', 'System Admin')
+VALUES ('admin1', 'admin@example.com', 'Admin@sdlms2025', 'ADMIN', 'System Admin')
 ON CONFLICT (email) DO NOTHING;

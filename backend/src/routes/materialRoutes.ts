@@ -1,14 +1,17 @@
 import { Router } from 'express';
+import { materialUpload } from '../middleware/materialUpload';
 import {
   getMaterials,
   getMaterial,
   createMaterial,
   updateMaterial,
-  deleteMaterial
+  deleteMaterial,
+  downloadMaterial
 } from '../controllers/materialController';
 import { authenticateToken, requireAdminOrTeacher } from '../middleware/auth';
 
 const router = Router();
+
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -19,13 +22,16 @@ router.get('/offering/:offeringId', getMaterials);
 // Get a single material
 router.get('/:id', getMaterial);
 
-// Create a new material
-router.post('/offering/:offeringId', requireAdminOrTeacher, createMaterial);
+// Create a new material (supports optional file upload under field name "file")
+router.post('/offering/:offeringId', requireAdminOrTeacher, materialUpload.single('file'), createMaterial);
 
-// Update a material
-router.put('/:id', requireAdminOrTeacher, updateMaterial);
+// Update a material (supports optional file upload under field name "file")
+router.put('/:id', requireAdminOrTeacher, materialUpload.single('file'), updateMaterial);
 
 // Delete a material
 router.delete('/:id', requireAdminOrTeacher, deleteMaterial);
+
+// Download a material file (forces attachment)
+router.get('/:id/download', authenticateToken, downloadMaterial);
 
 export default router;

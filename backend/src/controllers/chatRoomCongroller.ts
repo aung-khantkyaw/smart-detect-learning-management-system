@@ -88,8 +88,12 @@ export const getCourseChatRoomById = async (req: Request, res: Response) => {
     const { id } = req.params;
     
     try {
-        const chatRoom = await db.select().from(courseChatRooms).where(eq(courseChatRooms.id, id));
-        
+        // For offeringCourse route, treat :id as offeringId; fallback to direct room id for compatibility
+        let chatRoom = await db.select().from(courseChatRooms).where(eq(courseChatRooms.offeringId, id));
+        if (chatRoom.length === 0) {
+            chatRoom = await db.select().from(courseChatRooms).where(eq(courseChatRooms.id, id));
+        }
+
         if (chatRoom.length === 0) {
             return res.status(404).json({ status: "error", message: "Chat room not found" });
         }
@@ -125,15 +129,24 @@ export const getCourseChatRoomMembers = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     try {
+        // Resolve course chat room by offeringId first; fallback to room id
+        let chatRoom = await db.select().from(courseChatRooms).where(eq(courseChatRooms.offeringId, id));
+        if (chatRoom.length === 0) {
+            chatRoom = await db.select().from(courseChatRooms).where(eq(courseChatRooms.id, id));
+        }
+
+        if (chatRoom.length === 0) {
+            return res.status(404).json({ status: "error", message: "Chat room not found" });
+        }
+
+        const roomId = chatRoom[0].id;
+
         const memberList = await db.select().from(chatMembers).where(and(
-            eq(chatMembers.roomId, id),
+            eq(chatMembers.roomId, roomId),
             eq(chatMembers.roomType, 'COURSE')
         ));
 
-        if (memberList.length === 0) {
-            return res.status(404).json({ status: "error", message: "No members found for this chat room" });
-        }
-
+        // Return empty array if no members; client handles empty state
         return res.status(200).json({ status: "success", data: memberList, count: memberList.length })
     } catch (error) {
         console.error("Error fetching chat room members:", error);
@@ -196,6 +209,8 @@ export const sendMessage = async (req: Request, res: Response) => {
     const file = req.file;
 
     try {
+        console.log('sendMessage called with:', { roomId, roomType, senderId, message, file: file ? file.filename : 'no file' });
+        
         // Prepare message data (validation already done in middleware)
         const messageDetails: any = {
             roomId,
@@ -205,6 +220,7 @@ export const sendMessage = async (req: Request, res: Response) => {
             fileUrl: file ? file.path : null
         };
 
+        console.log('Inserting message:', messageDetails);
         const newMessage = await db.insert(chatMessages).values(messageDetails).returning();
 
         // Get sender information for real-time broadcast
@@ -241,7 +257,11 @@ export const sendMessage = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error("Error sending message:", error);
-        return res.status(500).json({ status: "error", message: "Internal Server Error" });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        console.error("Error details:", errorMessage);
+        console.error("Stack trace:", errorStack);
+        return res.status(500).json({ status: "error", message: "Internal Server Error", details: errorMessage });
     }
 };
 

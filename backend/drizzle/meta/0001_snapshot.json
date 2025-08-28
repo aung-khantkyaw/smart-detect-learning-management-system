@@ -1,6 +1,6 @@
 {
-  "id": "3aee68b8-79d4-4c24-8d37-bd2f9795b195",
-  "prevId": "01e61ca3-dd95-4256-bc9a-2cedfb23003d",
+  "id": "edfa3ca4-ee00-4060-9609-2f2bc2dbf4da",
+  "prevId": "be885f01-0f29-4ae7-aeab-58d3c8b81388",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -311,21 +311,15 @@
           "primaryKey": false,
           "notNull": false
         },
-        "file_url": {
-          "name": "file_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "text_answer": {
           "name": "text_answer",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "ai_score": {
-          "name": "ai_score",
-          "type": "numeric(5, 2)",
+        "score": {
+          "name": "score",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": false
         },
@@ -415,6 +409,26 @@
         },
         "description": {
           "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "question_type": {
+          "name": "question_type",
+          "type": "assignment_question_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'TEXT'"
+        },
+        "question_text": {
+          "name": "question_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "question_file_url": {
+          "name": "question_file_url",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1740,6 +1754,14 @@
     }
   },
   "enums": {
+    "public.assignment_question_type": {
+      "name": "assignment_question_type",
+      "schema": "public",
+      "values": [
+        "TEXT",
+        "PDF"
+      ]
+    },
     "public.quiz_question_type": {
       "name": "quiz_question_type",
       "schema": "public",

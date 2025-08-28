@@ -4,6 +4,7 @@ import { NavLink } from "react-router-dom";
 
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { api } from "../../lib/api";
+import { Brain } from "lucide-react";
 export default function Home() {
   const location = useLocation();
 
@@ -67,8 +68,8 @@ export default function Home() {
                     className="group flex items-center justify-between gap-3 rounded-md px-2.5 py-2 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 text-white grid place-items-center text-sm font-bold shadow-sm">
-                        SD
+                      <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-xl">
+                        <Brain className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex flex-col leading-tight">
                         <span className="text-sm font-semibold text-gray-900">

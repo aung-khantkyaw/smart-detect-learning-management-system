@@ -10,9 +10,9 @@ router.get("/academic", authenticateToken, getAllAcademicChatRooms);
 router.get("/academic/:id", authenticateToken, getAcademicChatRoomById);
 router.get("/academic/:id/members", authenticateToken, getAcademicChatRoomMembers);
 
-router.get("/course", authenticateToken, getAllCourseChatRooms);
-router.get("/course/:id", authenticateToken, getCourseChatRoomById);
-router.get("/course/:id/members", authenticateToken, getCourseChatRoomMembers);
+router.get("/offeringCourse", authenticateToken, getAllCourseChatRooms);
+router.get("/offeringCourse/:id", authenticateToken, getCourseChatRoomById);
+router.get("/offeringCourse/:id/members", authenticateToken, getCourseChatRoomMembers);
 
 // Message routes
 router.get("/:roomType/:roomId/messages", authenticateToken, getChatMessages);

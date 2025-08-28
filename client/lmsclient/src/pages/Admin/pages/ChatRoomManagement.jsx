@@ -1,5 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../../../lib/api";
+
+// Helpers
+const toArray = (res) => (Array.isArray(res) ? res : res?.data || []);
+const formatDate = (value) => {
+  const d = new Date(value);
+  return isNaN(d) ? "-" : d.toLocaleDateString();
+};
 
 export default function ChatRoomManagement() {
   const [chatRooms, setChatRooms] = useState([]);
@@ -12,57 +19,70 @@ export default function ChatRoomManagement() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [roomMembers, setRoomMembers] = useState([]);
 
+  const userMap = useMemo(() => {
+    return Object.fromEntries((users || []).map((u) => [u.id, u]));
+  }, [users]);
+
+  const courseMap = useMemo(() => {
+    return Object.fromEntries((courses || []).map((c) => [c.id, c]));
+  }, [courses]);
+
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
     try {
-      const [academicData, courseData, usersData, coursesData] =
-        await Promise.all([
-          api.get("/chat-rooms/academic"),
-          api.get("/chat-rooms/course"),
-          api.get("/users"),
-          api.get("/courses"),
-        ]);
+      const [allRoomsRes, usersData, coursesData] = await Promise.all([
+        api.get("/chat-rooms"),
+        api.get("/users"),
+        api.get("/courses"),
+      ]);
 
-      // Combine academic and course chat rooms with type info
+      // Handle the backend response structure: { status: "success", data: { academicChatRoom, courseChatRoom } }
+      const responseData = allRoomsRes?.data || allRoomsRes;
+      const academicRooms = responseData?.academicChatRoom || [];
+      const courseRooms = responseData?.courseChatRoom || [];
+
+      // Combine and normalize rooms
       const allRooms = [];
-      const academicRooms = Array.isArray(academicData)
-        ? academicData
-        : academicData?.data || [];
-      const courseRooms = Array.isArray(courseData)
-        ? courseData
-        : courseData?.data || [];
+
+      // Process academic rooms
       if (Array.isArray(academicRooms)) {
         allRooms.push(
           ...academicRooms.map((room) => ({
             ...room,
             roomType: "academic",
-            memberCount:
-              room.membersCount ??
-              room.memberCount ??
-              (Array.isArray(room.members) ? room.members.length : 0),
+            apiRoomType: "academic",
+            memberCount: room.membersCount || room.memberCount || 0,
           }))
         );
       }
+
+      // Process course rooms
       if (Array.isArray(courseRooms)) {
         allRooms.push(
           ...courseRooms.map((room) => ({
             ...room,
             roomType: "course",
-            memberCount:
-              room.membersCount ??
-              room.memberCount ??
-              (Array.isArray(room.members) ? room.members.length : 0),
+            apiRoomType: "offeringCourse",
+            courseId: room.offeringId || room.courseId,
+            memberCount: room.membersCount || room.memberCount || 0,
           }))
         );
       }
-      setChatRooms(allRooms);
-      setUsers(Array.isArray(usersData) ? usersData : usersData?.data || []);
-      setCourses(
-        Array.isArray(coursesData) ? coursesData : coursesData?.data || []
-      );
+
+      // Sort rooms by createdAt desc, then name asc
+      const sortedRooms = [...allRooms].sort((a, b) => {
+        const da = new Date(a.createdAt).getTime() || 0;
+        const db = new Date(b.createdAt).getTime() || 0;
+        if (db !== da) return db - da;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+
+      setChatRooms(sortedRooms);
+      setUsers(toArray(usersData));
+      setCourses(toArray(coursesData));
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
@@ -72,15 +92,15 @@ export default function ChatRoomManagement() {
 
   const fetchRoomMembers = async (room) => {
     try {
-      const endpoint =
-        room.roomType === "academic"
-          ? `/chat-rooms/academic/${room.id}/members`
-          : `/chat-rooms/course/${room.id}/members`;
+      const typeForApi =
+        room.apiRoomType ||
+        (room.roomType === "course" ? "offeringCourse" : "academic");
+      const endpoint = `/chat-rooms/${typeForApi}/${room.id}/members`;
       const data = await api.get(endpoint);
-      const members = Array.isArray(data) ? data : data?.data || [];
+      const members = toArray(data);
       // Enrich members with user details from cache
       const enriched = members.map((m) => {
-        const user = users.find((u) => u.id === m.userId) || {};
+        const user = userMap[m.userId] || {};
         return {
           ...m,
           fullName: user.fullName || user.username || "Unknown",
@@ -95,15 +115,17 @@ export default function ChatRoomManagement() {
     }
   };
 
-  const filteredRooms = Array.isArray(chatRooms)
-    ? chatRooms.filter((room) => {
-        const matchesSearch =
-          room.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          room.description?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = !typeFilter || room.roomType === typeFilter;
-        return matchesSearch && matchesType;
-      })
-    : [];
+  const filteredRooms = useMemo(() => {
+    if (!Array.isArray(chatRooms)) return [];
+    const term = (searchTerm || "").toLowerCase();
+    return chatRooms.filter((room) => {
+      const matchesSearch =
+        (room.name || "").toLowerCase().includes(term) ||
+        (room.description || "").toLowerCase().includes(term);
+      const matchesType = !typeFilter || room.roomType === typeFilter;
+      return matchesSearch && matchesType;
+    });
+  }, [chatRooms, searchTerm, typeFilter]);
 
   if (loading) {
     return (
@@ -142,7 +164,9 @@ export default function ChatRoomManagement() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Type
+              </label>
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
@@ -177,9 +201,6 @@ export default function ChatRoomManagement() {
                     Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Members
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Created
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -206,9 +227,8 @@ export default function ChatRoomManagement() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
-                          {room.offeringId
-                            ? courses.find((c) => c.id === room.courseId)
-                                ?.title || "Course Room"
+                          {room.roomType === "course"
+                            ? courseMap[room.courseId]?.title || "Course Room"
                             : "Academic Room"}
                         </div>
                       </td>
@@ -225,15 +245,7 @@ export default function ChatRoomManagement() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
-                          {typeof room.memberCount === "number"
-                            ? room.memberCount
-                            : 0}{" "}
-                          members
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
-                          {new Date(room.createdAt).toLocaleDateString()}
+                          {formatDate(room.createdAt)}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -337,7 +349,7 @@ export default function ChatRoomManagement() {
                               </div>
                             </div>
                             <span className="ml-4 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 capitalize">
-                              {member.role || 'member'}
+                              {member.role || "member"}
                             </span>
                           </div>
                         </div>

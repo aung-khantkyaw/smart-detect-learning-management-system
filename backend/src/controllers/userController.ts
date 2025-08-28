@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { db } from '../db';
-import { academicChatRooms, chatMembers, courseChatRooms, courseOfferings, enrollments, users } from '../db/schema'
-import { and, desc, eq, not } from 'drizzle-orm';
+import { academicChatRooms, chatMembers, courseChatRooms, courseOfferings, enrollments, users, courses } from '../db/schema'
+import { and, desc, eq, not, inArray, sql } from 'drizzle-orm';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -100,7 +100,21 @@ export const getEnrollmentByStudentId = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    const enrollment = await db.select().from(enrollments).where(and(eq(enrollments.studentId, id), eq(users.role, 'STUDENT')));
+    // Return list of enrolled offerings for the given student, enriched with course info
+    const rows = await db
+      .select({
+        enrollmentId: enrollments.id,
+        offeringId: courseOfferings.id,
+        courseId: courseOfferings.courseId,
+        code: courses.code,
+        title: courses.title,
+      })
+      .from(enrollments)
+      .leftJoin(courseOfferings, eq(enrollments.offeringId, courseOfferings.id))
+      .leftJoin(courses, eq(courseOfferings.courseId, courses.id))
+      .where(eq(enrollments.studentId, id));
+
+    return res.json({ status: 'success', data: rows });
   } catch (error) {
     console.error('Error fetching enrollment by student ID:', error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
@@ -169,13 +183,33 @@ export const getOfferingCoursesByTeacherId = async (req: Request, res: Response)
   const { id } = req.params;
 
   try {
-    const offeringCourses = await db.select().from(courseOfferings).where(eq(courseOfferings.teacherId, id));
+    const offeringCourses = await db
+      .select()
+      .from(courseOfferings)
+      .where(eq(courseOfferings.teacherId, id));
 
     if (offeringCourses.length === 0) {
       return res.status(404).json({ status: 'error', message: 'No offering courses found for this teacher' });
     }
 
-    res.json({ status: 'success', data: offeringCourses });
+    // Collect enrollment counts per offering
+    const offeringIds = offeringCourses.map((o) => o.id);
+    let countsMap = new Map<string, number>();
+    if (offeringIds.length > 0) {
+      const counts = await db
+        .select({ offeringId: enrollments.offeringId, count: sql<number>`count(*)` })
+        .from(enrollments)
+        .where(inArray(enrollments.offeringId, offeringIds))
+        .groupBy(enrollments.offeringId);
+      countsMap = new Map(counts.map((c) => [c.offeringId, Number(c.count)]));
+    }
+
+    const enriched = offeringCourses.map((o) => ({
+      ...o,
+      enrolledCount: countsMap.get(o.id) || 0,
+    }));
+
+    res.json({ status: 'success', data: enriched });
   } catch (error) {
     console.error('Error fetching offering courses by teacher ID:', error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
