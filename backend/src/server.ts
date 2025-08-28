@@ -5,6 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { SocketService } from './services/socketService';
+import path from 'path';
 
 import authRoutes from './routes/authRoutes'
 import userRoutes from './routes/userRoutes';
@@ -23,6 +24,7 @@ import announcementRoutes from './routes/announcementRoutes';
 import materialRoutes from './routes/materialRoutes';
 import quizRoutes from './routes/quizRoutes';
 import assignmentRoutes from './routes/assignmentRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -46,7 +48,10 @@ app.set('io', io);
 const PORT: number = Number(process.env.PORT) || 3000;
 
 // Middleware
-app.use(helmet());
+// Configure Helmet to allow cross-origin resource policy so assets under /uploads can be embedded cross-origin
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 // Express CORS using same allowed origins
 app.use(cors({
   origin: (origin, callback) => {
@@ -61,6 +66,17 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded files statically
+// Directory: backend/uploads -> accessible at /uploads
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads'), {
+  setHeaders: (res) => {
+    // Ensure media can be consumed cross-origin without being blocked by CORP
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    // Helpful caching headers for static assets
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+}));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -80,6 +96,7 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/assignments', assignmentRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

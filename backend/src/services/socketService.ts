@@ -90,6 +90,42 @@ export class SocketService {
         console.log(`User ${socket.userId} left room: ${roomKey}`);
       });
 
+      // Handle chat messages
+      socket.on('chat_message', async (data: { roomType: 'ACADEMIC' | 'COURSE'; roomId: string; senderId: string; message: string }) => {
+        try {
+          // Import database and controller function
+          const { sendMessage } = await import('../controllers/chatRoomCongroller');
+          
+          // Create a mock request/response to use the existing controller
+          const mockReq = {
+            body: {
+              roomId: data.roomId,
+              roomType: data.roomType,
+              senderId: data.senderId,
+              message: data.message
+            },
+            file: null
+          } as any;
+          
+          const mockRes = {
+            status: (code: number) => ({
+              json: (response: any) => {
+                if (code === 201) {
+                  console.log('Message saved successfully via socket');
+                } else {
+                  console.error('Failed to save message via socket:', response);
+                }
+              }
+            })
+          } as any;
+          
+          // Call the existing sendMessage controller
+          await sendMessage(mockReq, mockRes);
+        } catch (error) {
+          console.error('Error handling socket chat message:', error);
+        }
+      });
+
       // Handle typing indicators
       socket.on('typing-start', (data: TypingData) => {
         const roomKey = `${data.roomType}-${data.roomId}`;

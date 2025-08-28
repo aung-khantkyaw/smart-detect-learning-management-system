@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import TeacherCourseNav from './components/TeacherCourseNav.jsx'
 import { Outlet, useParams } from "react-router-dom";
+import { api } from "../../../lib/api";
 
 export default function TeacherCourseDetails() {
   const { id } = useParams(); // get course offering ID from URL
@@ -9,43 +10,32 @@ export default function TeacherCourseDetails() {
 
   useEffect(() => {
     const fetchCourseOffering = async () => {
-      const token = localStorage.getItem("accessToken");
-      if (!token) return;
-
       try {
-        const [offeringRes, coursesRes, academicYearsRes] = await Promise.all([
-          fetch(`http://localhost:3000/api/course-offerings`, {
-            headers: { "Authorization": `Bearer ${token}` }
-          }),
-          fetch("http://localhost:3000/api/courses", {
-            headers: { "Authorization": `Bearer ${token}` }
-          }),
-          fetch("http://localhost:3000/api/academic-years", {
-            headers: { "Authorization": `Bearer ${token}` }
-          })
+        const [offerings, allCourses, allAcademicYears] = await Promise.all([
+          api.get("/course-offerings"),
+          api.get("/courses"),
+          api.get("/academic-years"),
         ]);
 
-        const [offeringsData, coursesData, academicYearsData] = await Promise.all([
-          offeringRes.json(), coursesRes.json(), academicYearsRes.json()
-        ]);
+        const offering = Array.isArray(offerings)
+          ? offerings.find((o) => o.id === id)
+          : null;
 
-        if (offeringsData.status === "success") {
-          const offering = offeringsData.data.find(o => o.id === id);
-          const allCourses = coursesData.status === "success" ? coursesData.data : [];
-          const allAcademicYears = academicYearsData.status === "success" ? academicYearsData.data : [];
-          
-          if (offering) {
-            const courseInfo = allCourses.find(c => c.id === offering.courseId);
-            const academicYear = allAcademicYears.find(y => y.id === offering.academicYearId);
-            
-            setCourseOffering({
-              ...offering,
-              courseTitle: courseInfo?.title || 'Unknown Course',
-              courseCode: courseInfo?.code || 'N/A',
-              courseDescription: courseInfo?.description || '',
-              academicYear: academicYear?.name || 'N/A'
-            });
-          }
+        if (offering) {
+          const courseInfo = Array.isArray(allCourses)
+            ? allCourses.find((c) => c.id === offering.courseId)
+            : undefined;
+          const academicYear = Array.isArray(allAcademicYears)
+            ? allAcademicYears.find((y) => y.id === offering.academicYearId)
+            : undefined;
+
+          setCourseOffering({
+            ...offering,
+            courseTitle: courseInfo?.title || 'Unknown Course',
+            courseCode: courseInfo?.code || 'N/A',
+            courseDescription: courseInfo?.description || '',
+            academicYear: academicYear?.name || 'N/A'
+          });
         }
       } catch (err) {
         console.error(err);
@@ -58,38 +48,63 @@ export default function TeacherCourseDetails() {
   }, [id]);
 
   if (loading) {
+    // Polished skeleton to match final layout
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <>
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="animate-pulse space-y-4">
+              <div className="h-8 bg-white/20 rounded w-2/3" />
+              <div className="flex gap-3">
+                <div className="h-6 bg-white/20 rounded w-24" />
+                <div className="h-6 bg-white/20 rounded w-32" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center gap-3 py-3 border-b">
+            <div className="h-8 w-24 bg-gray-200 animate-pulse rounded" />
+            <div className="h-8 w-28 bg-gray-200 animate-pulse rounded" />
+            <div className="h-8 w-36 bg-gray-200 animate-pulse rounded" />
+          </div>
+        </div>
+      </>
     );
   }
 
   return (
     <>
-      <div className="p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-3">
-            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Course Details</span>
-          </div>
-          
+      {/* Hero Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 py-8">
           {courseOffering ? (
-            <div className="border-l-4 border-blue-600 pl-4 py-2">
-              <h1 className="text-xl font-bold text-gray-900">{courseOffering.courseTitle}</h1>
-              <p className="text-blue-600 font-medium">{courseOffering.courseCode}</p>
-              <p className="text-gray-600">{courseOffering.academicYear}</p>
+            <div className="space-y-3">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{courseOffering.courseTitle}</h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-white/15 border border-white/20 backdrop-blur">
+                  Code: <span className="ml-1 font-semibold">{courseOffering.courseCode}</span>
+                </span>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-white/15 border border-white/20 backdrop-blur">
+                  Academic Year: <span className="ml-1 font-semibold">{courseOffering.academicYear}</span>
+                </span>
+              </div>
             </div>
           ) : (
-            <div className="border border-gray-200 p-4 bg-gray-50">
-              <p className="text-gray-600">Course offering not found</p>
+            <div className="space-y-2">
+              <p className="text-white/90">Course offering not found.</p>
             </div>
           )}
         </div>
       </div>
-      
-      {/* Teacher Course Nav Section */}
+
+      {/* Tabs-first: keep the nav immediately after the header */}
       <TeacherCourseNav />
-      
+
+      {/* Overview content moved to Overview tab. */}
+
+      {/* Nested routes */}
       <Outlet context={{ courseOffering }} />
     </>
   )

@@ -1,5 +1,6 @@
 import React from 'react'
 import { useState ,useEffect} from "react";
+import { api } from '../../../lib/api';
 
 export default function Profile() {
  const [user, setUser] = useState(null);
@@ -7,71 +8,44 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
     const storedUserData = localStorage.getItem("userData");
-    
-    if (!token) {
-      console.error("No token found - please login again");
-      setLoading(false);
-      return;
-    }
 
-    // If we have stored user data, use it directly
-  if (storedUserData) {
-  try {
-    const parsed = JSON.parse(storedUserData);
-    setUser(parsed);
+    // If we have stored user data, use it directly and resolve academic year name
+    if (storedUserData) {
+      try {
+        const parsed = JSON.parse(storedUserData);
+        setUser(parsed);
 
-    // 🔹 fetch academic years to resolve the name
-    fetch("http://localhost:3000/api/academic-years", {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(academicYearsData => {
-      if (academicYearsData.status === "success" && parsed.academicYearId) {
-        const yearData = academicYearsData.data.find(y => y.id === parsed.academicYearId);
-        setAcademicYear(yearData?.name || 'Not assigned');
+        api.get('/academic-years').then((academicYears) => {
+          if (parsed.academicYearId) {
+            const yearData = academicYears.find(y => y.id === parsed.academicYearId);
+            setAcademicYear(yearData?.name || 'Not assigned');
+          }
+        }).finally(() => setLoading(false));
+        return;
+      } catch (err) {
+        console.error("Error parsing stored user data:", err);
       }
-    });
-
-    setLoading(false);
-    return;
-  } catch (err) {
-    console.error("Error parsing stored user data:", err);
-  }
-}
-
+    }
 
     // Fallback: try to get current user from API
     const fetchCurrentUser = async () => {
       try {
-        const [userRes, academicYearsRes] = await Promise.all([
-          fetch(`http://localhost:3000/api/users/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch("http://localhost:3000/api/academic-years", {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+        const [userData, academicYears] = await Promise.all([
+          api.get('/users/me'),
+          api.get('/academic-years')
         ]);
 
-        const [userData, academicYearsData] = await Promise.all([
-          userRes.json(), academicYearsRes.json()
-        ]);
+        const me = userData?.data || userData; // handle both wrapped and raw
+        setUser(me);
+        localStorage.setItem("userData", JSON.stringify(me));
 
-        if (userData.status === "success") {
-          setUser(userData.data);
-          localStorage.setItem("userData", JSON.stringify(userData.data));
-          
-          // Find academic year name
-          if (academicYearsData.status === "success" && userData.data.academicYearId) {
-            const yearData = academicYearsData.data.find(y => y.id === userData.data.academicYearId);
-            setAcademicYear(yearData?.name || 'Not assigned');
-          }
-        } else {
-          console.error(userData.message);
+        if (me?.academicYearId) {
+          const yearData = academicYears.find(y => y.id === me.academicYearId);
+          setAcademicYear(yearData?.name || 'Not assigned');
         }
       } catch (err) {
-        console.error("Fetch error:", err);
+        console.error("Error loading profile:", err);
       } finally {
         setLoading(false);
       }

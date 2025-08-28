@@ -44,7 +44,7 @@ export default function LoginForm() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Brain className="w-8 h-8 text-white" />
-            <span className="text-2xl font-bold text-white">Smart LMS</span>
+            <span className="text-2xl font-bold text-white">Smart Detect LMS</span>
           </div>
         </div>
       </nav>

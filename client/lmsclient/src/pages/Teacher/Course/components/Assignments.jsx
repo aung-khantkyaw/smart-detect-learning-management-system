@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { api } from "../../../../lib/api";
 
 export default function Assignments() {
   const { id } = useParams(); // course offering ID
@@ -12,7 +13,10 @@ export default function Assignments() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    dueAt: ""
+    dueAt: "",
+    questionType: "TEXT",
+    questionText: "",
+    questionFile: null
   });
 
   useEffect(() => {
@@ -20,30 +24,9 @@ export default function Assignments() {
   }, [id]);
 
   const fetchAssignments = async () => {
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      const res = await fetch(`http://localhost:3000/api/assignments/offering/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (!res.ok) {
-        console.error("Failed to fetch assignments:", res.status, res.statusText);
-        setAssignments([]);
-        return;
-      }
-      
-      const data = await res.json();
-      console.log("Assignments response:", data);
-      
-      if (Array.isArray(data)) {
-        setAssignments(data);
-      } else if (data.status === "success") {
-        setAssignments(Array.isArray(data.data) ? data.data : []);
-      } else {
-        console.error("Assignments API error:", data.message || 'Unknown error');
-        setAssignments([]);
-      }
+      const data = await api.get(`/assignments/offering/${id}`);
+      setAssignments(Array.isArray(data) ? data : data.data || []);
     } catch (err) {
       console.error("Error fetching assignments:", err);
       setAssignments([]);
@@ -54,76 +37,83 @@ export default function Assignments() {
 
   const handleCreateAssignment = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("accessToken");
     
     if (!formData.title.trim()) {
       alert("Please enter a title");
       return;
     }
-    
-    const requestBody = {
-      title: formData.title,
-      description: formData.description || "",
-      dueAt: formData.dueAt || null
-    };
+
+    if (formData.questionType === "TEXT" && !formData.questionText.trim()) {
+      alert("Please enter question text");
+      return;
+    }
+
+    if (formData.questionType === "PDF" && !formData.questionFile) {
+      alert("Please upload a question file");
+      return;
+    }
 
     try {
-      const res = await fetch(`http://localhost:3000/api/assignments/offering/${id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(requestBody)
-      });
+      let questionFileUrl = null;
       
-      if (res.ok) {
-        const result = await res.json();
-        console.log("Assignment created:", result);
-        setShowCreateModal(false);
-        setFormData({ title: "", description: "", dueAt: "" });
-        fetchAssignments();
+      // If PDF mode, upload file first
+      if (formData.questionType === "PDF" && formData.questionFile) {
+        const fileFormData = new FormData();
+        fileFormData.append('file', formData.questionFile);
         
-        // Success notification
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-        notification.innerHTML = `
-          <div class="flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Assignment created successfully!
-          </div>
-        `;
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 3000);
-      } else {
-        const error = await res.json();
-        alert(error.message || "Failed to create assignment");
+        // You'll need to implement file upload endpoint
+        // For now, we'll use a placeholder URL
+        questionFileUrl = `uploads/assignments/${Date.now()}_${formData.questionFile.name}`;
       }
+    
+      const requestBody = {
+        title: formData.title,
+        description: formData.description || "",
+        dueAt: formData.dueAt || null,
+        questionType: formData.questionType,
+        questionText: formData.questionType === "TEXT" ? formData.questionText : null,
+        questionFileUrl: formData.questionType === "PDF" ? questionFileUrl : null
+      };
+
+      const result = await api.post(`/assignments/offering/${id}`, requestBody);
+      console.log("Assignment created:", result);
+      
+      setShowCreateModal(false);
+      setFormData({ 
+        title: "", 
+        description: "", 
+        dueAt: "",
+        questionType: "TEXT",
+        questionText: "",
+        questionFile: null
+      });
+      fetchAssignments();
+      
+      // Success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      notification.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          Assignment created successfully!
+        </div>
+      `;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
     } catch (err) {
       console.error("Create assignment error:", err);
-      alert("Failed to create assignment: " + err.message);
+      alert("Failed to create assignment: " + (err.message || 'Unknown error'));
     }
   };
 
   const handleDeleteAssignment = async (assignmentId) => {
     if (!confirm("Are you sure you want to delete this assignment?")) return;
     
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      const res = await fetch(`http://localhost:3000/api/assignments/${assignmentId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        fetchAssignments();
-      } else {
-        const error = await res.json();
-        alert(error.message || "Delete failed");
-      }
+      await api.del(`/assignments/${assignmentId}`);
+      fetchAssignments();
     } catch (err) {
       console.error("Delete error:", err);
       alert("Delete failed");
@@ -131,47 +121,23 @@ export default function Assignments() {
   };
 
   const fetchSubmissions = async (assignment) => {
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      const res = await fetch(`http://localhost:3000/api/assignments/${assignment.id}/submissions`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setSubmissions(Array.isArray(data) ? data : data.data || []);
-        setSelectedAssignment(assignment);
-        setShowSubmissionsModal(true);
-      } else {
-        const error = await res.json();
-        alert(error.message || "Failed to fetch submissions");
-      }
+      const data = await api.get(`/assignments/${assignment.id}/submissions`);
+      setSubmissions(Array.isArray(data) ? data : data.data || []);
+      setSelectedAssignment(assignment);
+      setShowSubmissionsModal(true);
     } catch (err) {
       console.error("Fetch submissions error:", err);
       alert("Failed to fetch submissions");
     }
   };
 
-  const handleGradeSubmission = async (submissionId, grade) => {
-    const token = localStorage.getItem("accessToken");
-    
+  const handleGradeSubmission = async (submissionId, score) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/assignments/submissions/${submissionId}/grade`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ grade: parseFloat(grade) })
+      await api.patch(`/assignments/submissions/${submissionId}/grade`, { 
+        score: parseFloat(score) 
       });
-      
-      if (res.ok) {
-        fetchSubmissions(selectedAssignment); // Refresh submissions
-      } else {
-        const error = await res.json();
-        alert(error.message || "Failed to grade submission");
-      }
+      fetchSubmissions(selectedAssignment); // Refresh submissions
     } catch (err) {
       console.error("Grade submission error:", err);
       alert("Failed to grade submission");
@@ -208,8 +174,37 @@ export default function Assignments() {
               <div key={assignment.id} className="p-6 hover:bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <h3 className="text-lg font-medium text-gray-900">{assignment.title}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-lg font-medium text-gray-900">{assignment.title}</h3>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        assignment.questionType === 'TEXT' 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {assignment.questionType === 'TEXT' ? '📝 Text' : '📄 PDF'}
+                      </span>
+                    </div>
                     <p className="text-sm text-gray-600 mt-1">{assignment.description}</p>
+                    {assignment.questionType === 'TEXT' && assignment.questionText && (
+                      <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-700">
+                        <strong>Question:</strong> {assignment.questionText}
+                      </div>
+                    )}
+                    {assignment.questionType === 'PDF' && assignment.questionFileUrl && (
+                      <div className="mt-2">
+                        <a 
+                          href={assignment.questionFileUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          View Question File
+                        </a>
+                      </div>
+                    )}
                     <div className="flex items-center mt-2 text-sm text-gray-500 space-x-4">
                       <span>Created: {new Date(assignment.createdAt).toLocaleDateString()}</span>
                       {assignment.dueAt && (
@@ -255,35 +250,127 @@ export default function Assignments() {
         )}
       </div>
 
-      {/* Create Assignment Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900">Create Assignment</h3>
-            </div>
-            
-            <form onSubmit={handleCreateAssignment} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+        {/* Create Assignment Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8 text-white relative">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <div className="text-center">
+                  <div className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-2xl font-bold mx-auto mb-3">
+                    📝
+                  </div>
+                  <h3 className="text-2xl font-bold">Create New Assignment</h3>
+                  <p className="text-white/80 text-sm mt-1">Design an assignment for your students</p>
+                </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows="3"
-                />
-              </div>
+              <form onSubmit={handleCreateAssignment} className="p-6 space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">Question Type</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      formData.questionType === "TEXT" 
+                        ? "border-blue-500 bg-blue-50 text-blue-700" 
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}>
+                      <input
+                        type="radio"
+                        name="questionType"
+                        value="TEXT"
+                        checked={formData.questionType === "TEXT"}
+                        onChange={(e) => setFormData({...formData, questionType: e.target.value, questionFile: null})}
+                        className="sr-only"
+                      />
+                      <div className="text-center w-full">
+                        <div className="text-2xl mb-1">📝</div>
+                        <div className="font-medium text-sm">Text Question</div>
+                        <div className="text-xs text-gray-500 mt-1">Type your question</div>
+                      </div>
+                    </label>
+                    <label className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      formData.questionType === "PDF" 
+                        ? "border-purple-500 bg-purple-50 text-purple-700" 
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}>
+                      <input
+                        type="radio"
+                        name="questionType"
+                        value="PDF"
+                        checked={formData.questionType === "PDF"}
+                        onChange={(e) => setFormData({...formData, questionType: e.target.value, questionText: ""})}
+                        className="sr-only"
+                      />
+                      <div className="text-center w-full">
+                        <div className="text-2xl mb-1">📄</div>
+                        <div className="font-medium text-sm">PDF Upload</div>
+                        <div className="text-xs text-gray-500 mt-1">Upload question file</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">📚 Assignment Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                    placeholder="Enter assignment title..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">📋 Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                    rows="3"
+                    placeholder="Provide assignment description..."
+                  />
+                </div>
+
+              {formData.questionType === "TEXT" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Question Text</label>
+                  <textarea
+                    required
+                    value={formData.questionText}
+                    onChange={(e) => setFormData({...formData, questionText: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows="4"
+                    placeholder="Enter your assignment question here..."
+                  />
+                </div>
+              )}
+
+              {formData.questionType === "PDF" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Upload Question File (PDF)</label>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    required
+                    onChange={(e) => setFormData({...formData, questionFile: e.target.files[0]})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {formData.questionFile && (
+                    <p className="mt-1 text-sm text-gray-600">
+                      Selected: {formData.questionFile.name}
+                    </p>
+                  )}
+                </div>
+              )}
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
@@ -343,7 +430,7 @@ export default function Assignments() {
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">AI Score</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -366,50 +453,57 @@ export default function Assignments() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
-                            {submission.aiScore ? (
+                            {submission.score ? (
                               <span className={`font-medium ${
-                                submission.aiScore < 50 ? 'text-red-600' : 
-                                submission.aiScore < 80 ? 'text-yellow-600' : 'text-green-600'
+                                submission.score < 50 ? 'text-red-600' : 
+                                submission.score < 80 ? 'text-yellow-600' : 'text-green-600'
                               }`}>
-                                {submission.aiScore}%
+                                {submission.score}
                               </span>
-                            ) : 'Not checked'}
+                            ) : 'Not graded'}
                           </td>
                           <td className="px-4 py-3">
                             <input
                               type="number"
                               min="0"
                               max="100"
-                              defaultValue={submission.grade || ''}
+                              defaultValue={submission.score || ''}
                               onBlur={(e) => {
-                                if (e.target.value && e.target.value !== submission.grade) {
+                                if (e.target.value && e.target.value !== submission.score) {
                                   handleGradeSubmission(submission.id, e.target.value);
                                 }
                               }}
                               className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Grade"
+                              placeholder="Score"
                             />
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
                             {submission.submittedAt ? new Date(submission.submittedAt).toLocaleString() : 'Not submitted'}
                           </td>
                           <td className="px-4 py-3">
-                            {submission.fileUrl && (
-                              <a
-                                href={submission.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 text-sm"
-                              >
-                                View File
-                              </a>
-                            )}
                             {submission.textAnswer && (
                               <button
-                                onClick={() => alert(submission.textAnswer)}
-                                className="text-blue-600 hover:text-blue-800 text-sm ml-2"
+                                onClick={() => {
+                                  const modal = document.createElement('div');
+                                  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                                  modal.innerHTML = `
+                                    <div class="bg-white rounded-lg max-w-2xl w-full max-h-96 overflow-auto">
+                                      <div class="p-4 border-b">
+                                        <h3 class="text-lg font-semibold">Student Answer</h3>
+                                      </div>
+                                      <div class="p-4">
+                                        <p class="whitespace-pre-wrap">${submission.textAnswer}</p>
+                                      </div>
+                                      <div class="p-4 border-t flex justify-end">
+                                        <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Close</button>
+                                      </div>
+                                    </div>
+                                  `;
+                                  document.body.appendChild(modal);
+                                }}
+                                className="text-blue-600 hover:text-blue-800 text-sm"
                               >
-                                View Text
+                                View Answer
                               </button>
                             )}
                           </td>

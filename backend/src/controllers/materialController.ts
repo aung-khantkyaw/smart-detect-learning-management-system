@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { db } from '../db';
 import { materials, courseOfferings, users } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
+import path from 'path';
 
 // Get all materials for a course offering
 export const getMaterials = async (req: Request, res: Response) => {
@@ -88,13 +89,26 @@ export const createMaterial = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Course offering not found' });
     }
 
+    // Determine fileUrl from uploaded file if present
+    const uploaded = (req as any).file as Express.Multer.File | undefined;
+    let storedFileUrl: string | null = null;
+    if (uploaded && uploaded.path) {
+      const rel = path
+        .relative(process.cwd(), uploaded.path)
+        .split(path.sep)
+        .join('/');
+      storedFileUrl = `/${rel.replace(/^\/+/, '')}`; // ensure leading slash
+    } else if (fileUrl) {
+      storedFileUrl = fileUrl; // fallback to provided URL
+    }
+
     const newMaterial = await db
       .insert(materials)
       .values({
         offeringId,
         title,
         description,
-        fileUrl,
+        fileUrl: storedFileUrl || null,
         createdBy: userId
       })
       .returning();
@@ -112,13 +126,31 @@ export const updateMaterial = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { title, description, fileUrl } = req.body;
 
+    // Compute potential new fileUrl from uploaded file
+    const uploaded = (req as any).file as Express.Multer.File | undefined;
+    let nextFileUrl: string | undefined = undefined;
+    if (uploaded && uploaded.path) {
+      const rel = path
+        .relative(process.cwd(), uploaded.path)
+        .split(path.sep)
+        .join('/');
+      nextFileUrl = `/${rel.replace(/^\/+/, '')}`;
+    } else if (typeof fileUrl !== 'undefined') {
+      nextFileUrl = fileUrl;
+    }
+
+    const updatePayload: Partial<{
+      title: string;
+      description: string;
+      fileUrl: string | null;
+    }> = {};
+    if (typeof title !== 'undefined') updatePayload.title = title;
+    if (typeof description !== 'undefined') updatePayload.description = description;
+    if (typeof nextFileUrl !== 'undefined') updatePayload.fileUrl = nextFileUrl || null;
+
     const updatedMaterial = await db
       .update(materials)
-      .set({
-        title,
-        description,
-        fileUrl
-      })
+      .set(updatePayload)
       .where(eq(materials.id, id))
       .returning();
 
@@ -151,5 +183,43 @@ export const deleteMaterial = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error deleting material:', error);
     res.status(500).json({ error: 'Failed to delete material' });
+  }
+};
+
+// Download a material file (forces attachment)
+export const downloadMaterial = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const material = await db
+      .select({
+        id: materials.id,
+        title: materials.title,
+        fileUrl: materials.fileUrl,
+      })
+      .from(materials)
+      .where(eq(materials.id, id))
+      .limit(1);
+
+    if (material.length === 0) {
+      return res.status(404).json({ error: 'Material not found' });
+    }
+
+    const item = material[0];
+    if (!item.fileUrl) {
+      return res.status(400).json({ error: 'No file attached to this material' });
+    }
+
+    // Compute absolute file path safely
+    const rel = item.fileUrl.replace(/^\//, '');
+    const absPath = path.resolve(process.cwd(), rel);
+
+    // Set a reasonable filename
+    const fileName = item.title || path.basename(absPath);
+
+    return res.download(absPath, fileName);
+  } catch (error) {
+    console.error('Error downloading material:', error);
+    return res.status(500).json({ error: 'Failed to download material' });
   }
 };

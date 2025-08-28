@@ -1,65 +1,109 @@
 import React, { useState, useEffect } from 'react'
 import CourseNav from './components/courseNav.jsx'
-import { Link, Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useParams } from "react-router-dom";
+import { api } from "../../../lib/api";
 
 export default function CourseOverview() {
-
-   const { id } = useParams(); // get course ID from URL
+  const { id } = useParams(); // offering ID from URL
   const [course, setCourse] = useState(null);
+  const [offering, setOffering] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCourse = async () => {
-      const token = localStorage.getItem("accessToken");
-      if (!token) return;
-
+    const fetchCourseByOffering = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/courses/${id}`, {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-        });
-        const data = await res.json();
+        // 1) Load offering by offeringId from the route
+        const off = await api.get(`/course-offerings/${id}`);
+        const offPayload = Array.isArray(off) ? off[0] : off?.data || off;
+        if (!offPayload) {
+          setOffering(null);
+          setCourse(null);
+          return;
+        }
+        setOffering(offPayload);
 
-        if (data.status === "success") setCourse(data.data);
-        else console.error(data.message);
+        // 2) Load parent course using courseId from offering
+        const c = await api.get(`/courses/${offPayload.courseId}`);
+        const coursePayload = Array.isArray(c) ? c[0] : c?.data || c;
+        setCourse(coursePayload || null);
       } catch (err) {
-        console.error(err);
+        console.error("Error loading course/offering:", err);
+        setOffering(null);
+        setCourse(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCourse();
+    fetchCourseByOffering();
   }, [id]);
   
+  if (loading) {
+    return (
+      <>
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="animate-pulse space-y-4">
+              <div className="h-8 bg-white/20 rounded w-2/3" />
+              <div className="flex gap-3">
+                <div className="h-6 bg-white/20 rounded w-24" />
+                <div className="h-6 bg-white/20 rounded w-32" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center gap-3 py-3 border-b">
+            <div className="h-8 w-24 bg-gray-200 animate-pulse rounded" />
+            <div className="h-8 w-28 bg-gray-200 animate-pulse rounded" />
+            <div className="h-8 w-36 bg-gray-200 animate-pulse rounded" />
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <div className="p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-3">
-            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Course Details</span>
-          </div>
-          
+      {/* Hero Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 py-8">
           {course ? (
-            <div className="border-l-4 border-blue-600 pl-4 py-2">
-              <h1 className="text-xl font-bold text-gray-900">{course.title}</h1>
-              <p className="text-blue-600 font-medium">{course.code}</p>
-              <p className="text-gray-600">{course.description || 'No description available'}</p>
+            <div className="space-y-3">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{course.title}</h1>
+              <div className="flex flex-wrap items-center gap-2">
+                {course.code && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-white/15 border border-white/20 backdrop-blur">
+                    Code: <span className="ml-1 font-semibold">{course.code}</span>
+                  </span>
+                )}
+                {course.category && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-white/15 border border-white/20 backdrop-blur">
+                    Category: <span className="ml-1 font-semibold">{course.category}</span>
+                  </span>
+                )}
+                {offering?.name && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-white/15 border border-white/20 backdrop-blur">
+                    Offering: <span className="ml-1 font-semibold">{offering.name}</span>
+                  </span>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="border border-gray-200 p-4 bg-gray-50">
-              <p className="text-gray-600">Course not found</p>
+            <div className="space-y-2">
+              <p className="text-white/90">Course not found.</p>
             </div>
           )}
         </div>
       </div>
-      
-      {/* Course Nav Section */}
+
+      {/* Tabs-first: keep the nav immediately after the header */}
       <CourseNav />
-      
-      <Outlet context={{ course }} />
+
+      {/* Nested routes */}
+      <Outlet context={{ course, offering }} />
     </>
   )
 }

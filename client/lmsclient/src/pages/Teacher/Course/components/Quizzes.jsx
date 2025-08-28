@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { api } from "../../../../lib/api";
 
 export default function Quizzes() {
   const { id } = useParams(); // course offering ID
@@ -30,30 +31,11 @@ export default function Quizzes() {
   }, [id]);
 
   const fetchQuizzes = async () => {
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      const res = await fetch(`http://localhost:3000/api/quizzes/offering/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (!res.ok) {
-        console.error("Failed to fetch quizzes:", res.status, res.statusText);
-        setQuizzes([]);
-        return;
-      }
-      
-      const data = await res.json();
+      const data = await api.get(`/quizzes/offering/${id}`);
       console.log("Quizzes response:", data);
-      
-      if (Array.isArray(data)) {
-        setQuizzes(data);
-      } else if (data.status === "success") {
-        setQuizzes(Array.isArray(data.data) ? data.data : []);
-      } else {
-        console.error("Quizzes API error:", data.message || 'Unknown error');
-        setQuizzes([]);
-      }
+      const list = Array.isArray(data) ? data : (data?.data ?? []);
+      setQuizzes(list);
     } catch (err) {
       console.error("Error fetching quizzes:", err);
       setQuizzes([]);
@@ -64,7 +46,6 @@ export default function Quizzes() {
 
   const handleCreateQuiz = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("accessToken");
     
     if (!formData.title.trim()) {
       alert("Please enter a title");
@@ -80,39 +61,25 @@ export default function Quizzes() {
     };
 
     try {
-      const res = await fetch(`http://localhost:3000/api/quizzes/offering/${id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(requestBody)
-      });
+      const result = await api.post(`/quizzes/offering/${id}`, requestBody);
+      console.log("Quiz created:", result);
+      setShowCreateModal(false);
+      setFormData({ title: "", instructions: "", openAt: "", closeAt: "", questions: [] });
+      fetchQuizzes();
       
-      if (res.ok) {
-        const result = await res.json();
-        console.log("Quiz created:", result);
-        setShowCreateModal(false);
-        setFormData({ title: "", instructions: "", openAt: "", closeAt: "", questions: [] });
-        fetchQuizzes();
-        
-        // Success notification
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-        notification.innerHTML = `
-          <div class="flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Quiz created successfully!
-          </div>
-        `;
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 3000);
-      } else {
-        const error = await res.json();
-        alert(error.message || "Failed to create quiz");
-      }
+      // Success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      notification.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          Quiz created successfully!
+        </div>
+      `;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 4000);
     } catch (err) {
       console.error("Create quiz error:", err);
       alert("Failed to create quiz: " + err.message);
@@ -121,21 +88,9 @@ export default function Quizzes() {
 
   const handleDeleteQuiz = async (quizId) => {
     if (!confirm("Are you sure you want to delete this quiz?")) return;
-    
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      const res = await fetch(`http://localhost:3000/api/quizzes/${quizId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        fetchQuizzes();
-      } else {
-        const error = await res.json();
-        alert(error.message || "Delete failed");
-      }
+      await api.del(`/quizzes/${quizId}`);
+      fetchQuizzes();
     } catch (err) {
       console.error("Delete error:", err);
       alert("Delete failed");
@@ -143,22 +98,11 @@ export default function Quizzes() {
   };
 
   const fetchSubmissions = async (quiz) => {
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      const res = await fetch(`http://localhost:3000/api/quizzes/${quiz.id}/submissions`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setSubmissions(Array.isArray(data) ? data : data.data || []);
-        setSelectedQuiz(quiz);
-        setShowSubmissionsModal(true);
-      } else {
-        const error = await res.json();
-        alert(error.message || "Failed to fetch submissions");
-      }
+      const data = await api.get(`/quizzes/${quiz.id}/submissions`);
+      setSubmissions(Array.isArray(data) ? data : data?.data || []);
+      setSelectedQuiz(quiz);
+      setShowSubmissionsModal(true);
     } catch (err) {
       console.error("Fetch submissions error:", err);
       alert("Failed to fetch submissions");
@@ -166,22 +110,11 @@ export default function Quizzes() {
   };
 
   const fetchQuizQuestions = async (quiz) => {
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      const res = await fetch(`http://localhost:3000/api/quizzes/${quiz.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setQuestions(data.questions || []);
-        setSelectedQuiz(quiz);
-        setShowQuestionsModal(true);
-      } else {
-        const error = await res.json();
-        alert(error.message || "Failed to fetch questions");
-      }
+      const data = await api.get(`/quizzes/${quiz.id}`);
+      setQuestions(data.questions || []);
+      setSelectedQuiz(quiz);
+      setShowQuestionsModal(true);
     } catch (err) {
       console.error("Fetch questions error:", err);
       alert("Failed to fetch questions");
@@ -245,7 +178,7 @@ export default function Quizzes() {
       </div>
     `;
     document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 3000);
+    setTimeout(() => notification.remove(), 4000);
   };
 
   if (loading) {
@@ -257,153 +190,213 @@ export default function Quizzes() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Quizzes</h2>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-        >
-          <svg className="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          Create Quiz
-        </button>
-      </div>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Quiz Management</h1>
+            <p className="text-gray-600">Create and manage quizzes for your course</p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <svg className="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Create Quiz
+          </button>
+        </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {quizzes.length > 0 ? (
-          <div className="divide-y divide-gray-200">
-            {quizzes.map((quiz) => (
-              <div key={quiz.id} className="p-6 hover:bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-medium text-gray-900">{quiz.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{quiz.instructions}</p>
-                    <div className="flex items-center mt-2 text-sm text-gray-500 space-x-4">
-                      <span>Created: {new Date(quiz.createdAt).toLocaleDateString()}</span>
-                      {quiz.openAt && (
-                        <span>Opens: {new Date(quiz.openAt).toLocaleString()}</span>
-                      )}
-                      {quiz.closeAt && (
-                        <span>Closes: {new Date(quiz.closeAt).toLocaleString()}</span>
-                      )}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Quizzes ({quizzes.length})
+            </h3>
+          </div>
+          
+          {quizzes.length > 0 ? (
+            <div className="divide-y divide-gray-200">
+              {quizzes.map((quiz) => {
+                const now = new Date();
+                const isActive = (!quiz.openAt || now >= new Date(quiz.openAt)) && 
+                               (!quiz.closeAt || now <= new Date(quiz.closeAt));
+                
+                return (
+                  <div key={quiz.id} className="p-6 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{quiz.title}</h3>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            isActive 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {isActive ? '🟢 Active' : '⭕ Inactive'}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-3">{quiz.instructions || 'No instructions provided'}</p>
+                        <div className="flex items-center gap-6 text-sm text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Created: {new Date(quiz.createdAt).toLocaleDateString()}
+                          </div>
+                          {quiz.openAt && (
+                            <div className="flex items-center gap-1 text-green-600">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Opens: {new Date(quiz.openAt).toLocaleDateString()}
+                            </div>
+                          )}
+                          {quiz.closeAt && (
+                            <div className="flex items-center gap-1 text-red-600">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Closes: {new Date(quiz.closeAt).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => fetchQuizQuestions(quiz)}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Questions
+                        </button>
+                        <button
+                          onClick={() => fetchSubmissions(quiz)}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                          Submissions
+                        </button>
+                        <button
+                          onClick={() => handleDeleteQuiz(quiz.id)}
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => fetchQuizQuestions(quiz)}
-                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Edit Questions
-                    </button>
-                    <button
-                      onClick={() => fetchSubmissions(quiz)}
-                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                      Submissions
-                    </button>
-                    <button
-                      onClick={() => handleDeleteQuiz(quiz.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-gray-500">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No quizzes found</h3>
+                <p className="mt-1 text-sm text-gray-500">Get started by creating your first quiz.</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Create Quiz Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8 text-white relative">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <div className="text-center">
+                  <div className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-2xl font-bold mx-auto mb-3">
+                    📝
                   </div>
+                  <h3 className="text-2xl font-bold">Create New Quiz</h3>
+                  <p className="text-white/80 text-sm mt-1">Design an interactive quiz for your students</p>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No quizzes created</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating your first quiz.</p>
+              
+              <form onSubmit={handleCreateQuiz} className="p-6 space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">📚 Quiz Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                    placeholder="Enter quiz title..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">📋 Instructions</label>
+                  <textarea
+                    value={formData.instructions}
+                    onChange={(e) => setFormData({...formData, instructions: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                    rows="3"
+                    placeholder="Provide instructions for students..."
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-800 mb-3">🕐 Open At</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.openAt}
+                      onChange={(e) => setFormData({...formData, openAt: e.target.value})}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-800 mb-3">🕐 Close At</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.closeAt}
+                      onChange={(e) => setFormData({...formData, closeAt: e.target.value})}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 pt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="flex-1 px-6 py-3 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:scale-105 transition-all"
+                  >
+                    Create Quiz
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Create Quiz Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900">Create Quiz</h3>
-            </div>
-            
-            <form onSubmit={handleCreateQuiz} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Instructions</label>
-                <textarea
-                  value={formData.instructions}
-                  onChange={(e) => setFormData({...formData, instructions: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows="3"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Open At</label>
-                <input
-                  type="datetime-local"
-                  value={formData.openAt}
-                  onChange={(e) => setFormData({...formData, openAt: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Close At</label>
-                <input
-                  type="datetime-local"
-                  value={formData.closeAt}
-                  onChange={(e) => setFormData({...formData, closeAt: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  Create Quiz
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Submissions Modal */}
+        {/* Submissions Modal */}
       {showSubmissionsModal && selectedQuiz && (
         <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
@@ -643,53 +636,36 @@ export default function Quizzes() {
                           return;
                         }
                         
-                        const token = localStorage.getItem("accessToken");
-                        
                         try {
                           // Delete the existing quiz
-                          await fetch(`http://localhost:3000/api/quizzes/${selectedQuiz.id}`, {
-                            method: "DELETE",
-                            headers: { Authorization: `Bearer ${token}` }
-                          });
+                          await api.del(`/quizzes/${selectedQuiz.id}`);
                           
                           // Create new quiz with questions
-                          const res = await fetch(`http://localhost:3000/api/quizzes/offering/${id}`, {
-                            method: "POST",
-                            headers: {
-                              "Content-Type": "application/json",
-                              Authorization: `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                              title: selectedQuiz.title,
-                              instructions: selectedQuiz.instructions,
-                              openAt: selectedQuiz.openAt,
-                              closeAt: selectedQuiz.closeAt,
-                              questions: questions
-                            })
+                          await api.post(`/quizzes/offering/${id}`, {
+                            title: selectedQuiz.title,
+                            instructions: selectedQuiz.instructions,
+                            openAt: selectedQuiz.openAt,
+                            closeAt: selectedQuiz.closeAt,
+                            questions: questions
                           });
                           
-                          if (res.ok) {
-                            setShowQuestionsModal(false);
-                            setQuestions([]);
-                            fetchQuizzes();
-                            
-                            // Success notification
-                            const notification = document.createElement('div');
-                            notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-                            notification.innerHTML = `
-                              <div class="flex items-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                Questions saved successfully!
-                              </div>
-                            `;
-                            document.body.appendChild(notification);
-                            setTimeout(() => notification.remove(), 3000);
-                          } else {
-                            const error = await res.json();
-                            alert(error.message || "Failed to save questions");
-                          }
+                          setShowQuestionsModal(false);
+                          setQuestions([]);
+                          fetchQuizzes();
+                          
+                          // Success notification
+                          const notification = document.createElement('div');
+                          notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                          notification.innerHTML = `
+                            <div class="flex items-center">
+                              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                              </svg>
+                              Questions saved successfully!
+                            </div>
+                          `;
+                          document.body.appendChild(notification);
+                          setTimeout(() => notification.remove(), 4000);
                         } catch (err) {
                           console.error("Save questions error:", err);
                           alert("Failed to save questions: " + err.message);
@@ -706,6 +682,7 @@ export default function Quizzes() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
