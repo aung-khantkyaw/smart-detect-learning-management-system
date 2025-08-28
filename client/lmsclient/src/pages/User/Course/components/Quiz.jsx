@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { api } from '../../../../lib/api';
 
 export default function Quiz() {
   const { id } = useParams();
@@ -18,34 +19,10 @@ export default function Quiz() {
   }, [id]);
 
   const fetchQuizzes = async () => {
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      // First get offering ID from course ID
-      const offeringsRes = await fetch(`http://localhost:3000/api/course-offerings`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const offeringsData = await offeringsRes.json();
-      const offerings = offeringsData.status === "success" ? offeringsData.data : [];
-      const offering = offerings.find(o => o.courseId === id);
-      
-      if (!offering) {
-        setQuizzes([]);
-        return;
-      }
-      
-      // Fetch quizzes for this offering
-      const res = await fetch(`http://localhost:3000/api/quizzes/offering/${offering.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setQuizzes(Array.isArray(data) ? data : data.data || []);
-      } else {
-        setQuizzes([]);
-      }
+      const data = await api.get(`/quizzes/course/${id}`);
+      const quizList = Array.isArray(data) ? data : data.data || [];
+      setQuizzes(quizList);
     } catch (err) {
       console.error("Error fetching quizzes:", err);
       setQuizzes([]);
@@ -55,33 +32,64 @@ export default function Quiz() {
   };
 
   const fetchSubmissions = async () => {
-    const token = localStorage.getItem("accessToken");
-    const userData = JSON.parse(localStorage.getItem("userData"));
+    const userData = JSON.parse(localStorage.getItem("userData") || '{}');
     
     try {
-      const res = await fetch(`http://localhost:3000/api/quiz-submissions/student/${userData.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setSubmissions(Array.isArray(data) ? data : data.data || []);
-      }
+      const data = await api.get(`/quizzes/submissions/user/${userData.id}`);
+      setSubmissions(Array.isArray(data) ? data : data.data || []);
     } catch (err) {
       console.error("Error fetching submissions:", err);
     }
   };
 
-  const startQuiz = (quiz) => {
-    setSelectedQuiz(quiz);
-    setQuizStarted(true);
-    setCurrentQuestion(0);
-    setAnswers({});
-    setShowResults(false);
+  const isQuizSubmitted = (quizId) => {
+    return submissions.some(s => s.quizId === quizId);
   };
 
-  const handleAnswer = (questionId, answer) => {
-    setAnswers(prev => ({ ...prev, [questionId]: answer }));
+
+
+  const startQuiz = async (quiz) => {
+    try {
+      // Fetch full quiz details with questions
+      const fullQuiz = await api.get(`/quizzes/${quiz.id}`);
+      setSelectedQuiz(fullQuiz);
+      setQuizStarted(true);
+      setCurrentQuestion(0);
+      setAnswers({});
+      setShowResults(false);
+    } catch (err) {
+      console.error("Error fetching quiz details:", err);
+    }
+  };
+
+  const handleAnswer = (questionId, answer, questionType) => {
+    if (questionType === 'MULTIPLE_CHOICE') {
+      // For multiple choice, handle array of selected options
+      setAnswers(prev => {
+        const currentAnswers = prev[questionId] || [];
+        const isSelected = currentAnswers.includes(answer);
+        
+        if (isSelected) {
+          // Remove from selection
+          return {
+            ...prev,
+            [questionId]: currentAnswers.filter(id => id !== answer)
+          };
+        } else {
+          // Add to selection
+          return {
+            ...prev,
+            [questionId]: [...currentAnswers, answer]
+          };
+        }
+      });
+    } else if (questionType === 'SHORT_TEXT') {
+      // For short text, store the text value
+      setAnswers(prev => ({ ...prev, [questionId]: answer }));
+    } else {
+      // For single choice, store single option ID
+      setAnswers(prev => ({ ...prev, [questionId]: answer }));
+    }
   };
 
   const nextQuestion = () => {
@@ -96,20 +104,51 @@ export default function Quiz() {
     }
   };
 
-  const submitQuiz = () => {
-    setShowResults(true);
-    // Here you would normally submit to backend
+  const submitQuiz = async () => {
+    try {
+      // Prepare answers in the format expected by backend
+      const formattedAnswers = Object.entries(answers).map(([questionId, answer]) => {
+        const question = selectedQuiz.questions.find(q => q.id === questionId);
+        
+        if (question?.questionType === 'SHORT_TEXT') {
+          return {
+            questionId,
+            shortTextAnswer: answer,
+            selectedOptionIds: null
+          };
+        } else if (question?.questionType === 'MULTIPLE_CHOICE') {
+          return {
+            questionId,
+            selectedOptionIds: Array.isArray(answer) ? answer : [answer],
+            shortTextAnswer: null
+          };
+        } else {
+          // SINGLE_CHOICE
+          return {
+            questionId,
+            selectedOptionIds: Array.isArray(answer) ? answer : [answer],
+            shortTextAnswer: null
+          };
+        }
+      });
+      
+      await api.post(`/quizzes/${selectedQuiz.id}/submit`, {
+        answers: formattedAnswers
+      });
+      
+      setShowResults(true);
+      fetchQuizzes();
+      fetchSubmissions();
+    } catch (err) {
+      console.error("Error submitting quiz:", err);
+      alert('Failed to submit quiz');
+    }
   };
 
   const backToQuizzes = () => {
     setSelectedQuiz(null);
     setQuizStarted(false);
     setShowResults(false);
-  };
-
-  const getSubmissionStatus = (quizId) => {
-    const submission = submissions.find(s => s.quizId === quizId);
-    return submission ? { submitted: true, score: submission.score, status: submission.status } : { submitted: false };
   };
 
   if (loading) {
@@ -149,23 +188,54 @@ export default function Quiz() {
 
           {question && (
             <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">{question.prompt}</h3>
-              
-              <div className="space-y-3">
-                {question.options?.map((option, index) => (
-                  <label key={option.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <input
-                      type="radio"
-                      name={`question-${question.id}`}
-                      value={option.id}
-                      checked={answers[question.id] === option.id}
-                      onChange={() => handleAnswer(question.id, option.id)}
-                      className="mr-3"
-                    />
-                    <span>{option.optionText}</span>
-                  </label>
-                ))}
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-lg font-medium text-gray-900">{question.prompt}</h3>
+                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  {question.points} {question.points === 1 ? 'point' : 'points'}
+                </span>
               </div>
+              
+              {question.questionType === 'SHORT_TEXT' ? (
+                <textarea
+                  value={answers[question.id] || ''}
+                  onChange={(e) => handleAnswer(question.id, e.target.value, question.questionType)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows="4"
+                  placeholder="Enter your answer here..."
+                />
+              ) : (
+                <div className="space-y-3">
+                  {question.options?.map((option, index) => {
+                    const isSelected = question.questionType === 'MULTIPLE_CHOICE' 
+                      ? (answers[question.id] || []).includes(option.id)
+                      : answers[question.id] === option.id;
+                    
+                    return (
+                      <label key={option.id} className={`flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${
+                        isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                      }`}>
+                        <input
+                          type={question.questionType === 'MULTIPLE_CHOICE' ? 'checkbox' : 'radio'}
+                          name={`question-${question.id}`}
+                          value={option.id}
+                          checked={isSelected}
+                          onChange={() => handleAnswer(question.id, option.id, question.questionType)}
+                          className="mr-3"
+                        />
+                        <span className={isSelected ? 'text-blue-900 font-medium' : ''}>{option.optionText}</span>
+                      </label>
+                    );
+                  })}
+                  {question.questionType === 'MULTIPLE_CHOICE' && (
+                    <p className="text-sm text-gray-500 mt-2">
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Select all that apply
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -203,7 +273,6 @@ export default function Quiz() {
   if (showResults && selectedQuiz) {
     const totalQuestions = selectedQuiz.questions?.length || 0;
     const answeredQuestions = Object.keys(answers).length;
-    const score = Math.round((answeredQuestions / totalQuestions) * 100);
     
     return (
       <div className="max-w-4xl mx-auto p-6">
@@ -214,24 +283,23 @@ export default function Quiz() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Completed!</h2>
-            <p className="text-gray-600">You have successfully submitted your quiz.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Submitted Successfully!</h2>
+            <p className="text-gray-600">Your answers have been recorded and will be graded automatically.</p>
           </div>
           
           <div className="bg-gray-50 rounded-lg p-6 mb-6">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-blue-600">{score}%</div>
-                <div className="text-sm text-gray-500">Score</div>
-              </div>
+            <div className="grid grid-cols-2 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-green-600">{answeredQuestions}</div>
-                <div className="text-sm text-gray-500">Answered</div>
+                <div className="text-sm text-gray-500">Questions Answered</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-600">{totalQuestions}</div>
                 <div className="text-sm text-gray-500">Total Questions</div>
               </div>
+            </div>
+            <div className="mt-4 text-sm text-gray-600">
+              <p>Your score will be calculated automatically and available in your submissions.</p>
             </div>
           </div>
           
@@ -262,14 +330,16 @@ export default function Quiz() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {quizzes.map((quiz) => {
-            const submission = getSubmissionStatus(quiz.id);
-            const isOpen = new Date() >= new Date(quiz.openAt) && new Date() <= new Date(quiz.closeAt);
+            const now = new Date();
+            const isOpen = (!quiz.openAt || now >= new Date(quiz.openAt)) && 
+                          (!quiz.closeAt || now <= new Date(quiz.closeAt));
+            const submitted = isQuizSubmitted(quiz.id);
             
             return (
               <div key={quiz.id} className="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">{quiz.title}</h3>
-                  {submission.submitted && (
+                  {submitted && (
                     <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
                       Completed
                     </span>
@@ -280,36 +350,26 @@ export default function Quiz() {
                 
                 <div className="space-y-2 text-sm text-gray-500 mb-4">
                   {quiz.openAt && (
-                    <div>Opens: {new Date(quiz.openAt).toLocaleString()}</div>
+                    <div>Opens: {new Date(quiz.openAt).toLocaleDateString()}</div>
                   )}
                   {quiz.closeAt && (
-                    <div>Closes: {new Date(quiz.closeAt).toLocaleString()}</div>
+                    <div>Closes: {new Date(quiz.closeAt).toLocaleDateString()}</div>
                   )}
                 </div>
                 
-                {submission.submitted ? (
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Your Score:</span>
-                      <span className="font-medium">{submission.score || 'Pending'}%</span>
-                    </div>
-                    <button className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-md">
-                      View Results
-                    </button>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={() => startQuiz(quiz)}
-                    disabled={!isOpen}
-                    className={`w-full py-2 px-4 rounded-md transition ${
-                      isOpen 
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {isOpen ? 'Start Quiz' : 'Not Available'}
-                  </button>
-                )}
+                <button 
+                  onClick={() => startQuiz(quiz)}
+                  disabled={!isOpen || submitted}
+                  className={`w-full py-2 px-4 rounded-md transition ${
+                    submitted 
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : isOpen 
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {submitted ? 'Already Submitted' : isOpen ? 'Start Quiz' : 'Not Available'}
+                </button>
               </div>
             );
           })}
