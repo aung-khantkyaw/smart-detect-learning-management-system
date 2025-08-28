@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../../../lib/api';
 
 export default function CourseChatRooms() {
   const [chatRooms, setChatRooms] = useState([]);
@@ -10,10 +11,9 @@ export default function CourseChatRooms() {
   }, []);
 
   const fetchChatRooms = async () => {
-    const token = localStorage.getItem("accessToken");
     const userData = JSON.parse(localStorage.getItem("userData") || '{}');
     
-    if (!token || !userData.id) {
+    if (!userData.id) {
       setChatRooms([]);
       setLoading(false);
       return;
@@ -21,18 +21,7 @@ export default function CourseChatRooms() {
 
     try {
       // Get student's enrollments first
-      const enrollmentsRes = await fetch(`http://localhost:3000/api/enrollments`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (!enrollmentsRes.ok) {
-        setChatRooms([]);
-        setLoading(false);
-        return;
-      }
-      
-      const enrollmentsData = await enrollmentsRes.json();
-      const enrollments = enrollmentsData.status === "success" ? enrollmentsData.data : enrollmentsData;
+      const enrollments = await api.get(`/enrollments`);
       
       // Filter enrollments for current student
       const studentEnrollments = enrollments.filter(e => e.studentId === userData.id);
@@ -47,31 +36,17 @@ export default function CourseChatRooms() {
       const enrolledOfferingIds = studentEnrollments.map(e => e.offeringId);
       
       // Get all chat rooms
-      const roomsRes = await fetch(`http://localhost:3000/api/chat-rooms/course`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (roomsRes.ok) {
-        const roomsData = await roomsRes.json();
-        const allRooms = roomsData.status === "success" ? roomsData.data : roomsData;
+      try {
+        const allRooms = await api.get(`/chat-rooms/course`);
         
         // Filter rooms for enrolled offerings only
         const enrolledRooms = allRooms.filter(room => enrolledOfferingIds.includes(room.offeringId));
         
         // Get course offerings and courses for room details
-        const [offeringsRes, coursesRes] = await Promise.all([
-          fetch(`http://localhost:3000/api/course-offerings`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(`http://localhost:3000/api/courses`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+        const [offerings, courses] = await Promise.all([
+          api.get(`/course-offerings`),
+          api.get(`/courses`)
         ]);
-        
-        const offeringsData = await offeringsRes.json();
-        const coursesData = await coursesRes.json();
-        const offerings = offeringsData.status === "success" ? offeringsData.data : [];
-        const courses = coursesData.status === "success" ? coursesData.data : [];
         
         const enrichedRooms = enrolledRooms.map(room => {
           const offering = offerings.find(o => o.id === room.offeringId);
@@ -85,7 +60,7 @@ export default function CourseChatRooms() {
         });
         
         setChatRooms(enrichedRooms);
-      } else {
+      } catch {
         setChatRooms([]);
       }
     } catch (err) {

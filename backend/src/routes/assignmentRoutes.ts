@@ -14,6 +14,7 @@ import {
   getAssignmentsForStudent,
 } from '../controllers/assignmentController';
 import { authenticateToken, requireAdminOrTeacher, requireStudent } from '../middleware/auth';
+import { getMulterUpload } from '../utils/multerUpload';
 
 const router = Router();
 
@@ -39,7 +40,8 @@ router.put('/:id', requireAdminOrTeacher, updateAssignment);
 router.delete('/:id', requireAdminOrTeacher, deleteAssignment);
 
 // Submit assignment (student)
-router.post('/:id/submit', requireStudent, submitAssignment);
+const assignmentUpload = getMulterUpload('assignments');
+router.post('/:id/submit', requireStudent, assignmentUpload.none(), submitAssignment);
 
 // Student: list own submissions for an assignment
 router.get('/:id/my-submissions', requireStudent, getStudentSubmissions);

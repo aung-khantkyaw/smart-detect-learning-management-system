@@ -4,8 +4,11 @@ import {
   assignments, 
   assignmentSubmissions, 
   courseOfferings, 
-  users 
+  users,
+  aiFlags,
+  notifications 
 } from '../db/schema';
+import { createNotification as createNotificationHelper } from './notificationController';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -44,6 +47,9 @@ export const getAssignments = async (req: Request, res: Response) => {
         id: assignments.id,
         title: assignments.title,
         description: assignments.description,
+        questionType: assignments.questionType,
+        questionText: assignments.questionText,
+        questionFileUrl: assignments.questionFileUrl,
         dueAt: assignments.dueAt,
         createdAt: assignments.createdAt
       })
@@ -84,10 +90,22 @@ export const getAssignment = async (req: Request, res: Response) => {
 export const createAssignment = async (req: Request, res: Response) => {
   try {
     const { offeringId } = req.params;
-    const { title, description, dueAt } = req.body;
+    const { title, description, dueAt, questionType, questionText, questionFileUrl } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
+    }
+
+    if (!questionType || !['TEXT', 'PDF'].includes(questionType)) {
+      return res.status(400).json({ error: 'Valid question type is required (TEXT or PDF)' });
+    }
+
+    if (questionType === 'TEXT' && !questionText) {
+      return res.status(400).json({ error: 'Question text is required for TEXT type' });
+    }
+
+    if (questionType === 'PDF' && !questionFileUrl) {
+      return res.status(400).json({ error: 'Question file URL is required for PDF type' });
     }
 
     // Verify the offering exists
@@ -109,6 +127,9 @@ export const createAssignment = async (req: Request, res: Response) => {
         offeringId,
         title,
         description,
+        questionType,
+        questionText: questionType === 'TEXT' ? questionText : null,
+        questionFileUrl: questionType === 'PDF' ? questionFileUrl : null,
         dueAt: dueAt ? new Date(dueAt) : null
       })
       .returning();
@@ -168,19 +189,90 @@ export const deleteAssignment = async (req: Request, res: Response) => {
   }
 };
 
+// AI Detection helper function
+const checkAIContent = async (text: string): Promise<{ prediction: string; confidence: number; probabilities: { human: number; ai: number } }> => {
+  try {
+    const response = await fetch('https://laziestant-ai-text-detection.onrender.com/predict', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI detection API failed: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('AI detection error:', error);
+    throw error;
+  }
+};
+
+// Create notification helper
+const createNotification = async (userId: string, title: string, body: string) => {
+  try {
+    await db.insert(notifications).values({
+      id: uuidv4(),
+      userId,
+      title,
+      body
+    });
+  } catch (error) {
+    console.error('Error creating notification:', error);
+  }
+};
+
+// Update AI flag helper
+const updateAIFlag = async (offeringId: string, studentId: string) => {
+  try {
+    const existingFlag = await db
+      .select()
+      .from(aiFlags)
+      .where(and(
+        eq(aiFlags.offeringId, offeringId),
+        eq(aiFlags.studentId, studentId)
+      ))
+      .limit(1);
+
+    if (existingFlag.length > 0) {
+      await db
+        .update(aiFlags)
+        .set({
+          flaggedCount: existingFlag[0].flaggedCount + 1,
+          lastFlaggedAt: new Date()
+        })
+        .where(eq(aiFlags.id, existingFlag[0].id));
+    } else {
+      await db.insert(aiFlags).values({
+        id: uuidv4(),
+        offeringId,
+        studentId,
+        flaggedCount: 1,
+        lastFlaggedAt: new Date()
+      });
+    }
+  } catch (error) {
+    console.error('Error updating AI flag:', error);
+  }
+};
+
 // Submit assignment
 export const submitAssignment = async (req: Request, res: Response) => {
   try {
     const { id: assignmentId } = req.params;
-    const { fileUrl, textAnswer } = req.body;
+    // Handle both JSON and FormData
+    const textAnswer = req.body?.textAnswer || (req as any).body?.textAnswer;
     const userId = (req as any).user?.id;
 
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    if (!fileUrl && !textAnswer) {
-      return res.status(400).json({ error: 'Either file URL or text answer is required' });
+    if (!textAnswer || !textAnswer.trim()) {
+      return res.status(400).json({ error: 'Text answer is required' });
     }
 
     // Check if assignment exists
@@ -213,6 +305,55 @@ export const submitAssignment = async (req: Request, res: Response) => {
 
     const attemptNumber = latestSubmission.length > 0 ? latestSubmission[0].attemptNumber + 1 : 1;
 
+    // Check AI content
+    let aiResult;
+    let submissionStatus = 'SUBMITTED';
+    
+    try {
+      aiResult = await checkAIContent(textAnswer);
+      
+      if (aiResult.prediction === 'ai') {
+        submissionStatus = 'REJECTED_AI';
+        
+        // Update AI flag count
+        await updateAIFlag(assignment[0].offeringId, userId);
+        
+        // Get student info for notifications
+        const student = await db
+          .select({ fullName: users.fullName })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        
+        const studentName = student.length > 0 ? student[0].fullName : 'Student';
+        
+        // Notify student
+        await createNotification(
+          userId,
+          'Assignment Flagged - AI Content Detected',
+          `Your submission for "${assignment[0].title}" has been flagged as potentially AI-generated content. Please review and resubmit with original work.`
+        );
+        
+        // Get teacher(s) for this offering and notify them
+        const teachers = await db
+          .select({ id: users.id })
+          .from(users)
+          .innerJoin(courseOfferings, eq(courseOfferings.teacherId, users.id))
+          .where(eq(courseOfferings.id, assignment[0].offeringId));
+        
+        for (const teacher of teachers) {
+          await createNotification(
+            teacher.id,
+            'Student Assignment Flagged - AI Content',
+            `${studentName}'s submission for "${assignment[0].title}" has been flagged as potentially AI-generated content (Confidence: ${(aiResult.confidence * 100).toFixed(1)}%).`
+          );
+        }
+      }
+    } catch (aiError) {
+      console.error('AI detection failed, allowing submission:', aiError);
+      // If AI detection fails, allow the submission to proceed
+    }
+
     const submissionId = uuidv4();
 
     // Create submission
@@ -223,12 +364,41 @@ export const submitAssignment = async (req: Request, res: Response) => {
         assignmentId,
         studentId: userId,
         submittedAt: now,
-        fileUrl,
         textAnswer,
-        status: 'SUBMITTED',
+        score: null, // Teacher will grade later
+        status: submissionStatus as 'PENDING' | 'SUBMITTED' | 'GRADED' | 'REJECTED_AI',
         attemptNumber
       })
       .returning();
+
+    // Notify teacher about new submission (only if not flagged)
+    if (submissionStatus === 'SUBMITTED') {
+      const teachers = await db
+        .select({ id: users.id, fullName: users.fullName })
+        .from(users)
+        .innerJoin(courseOfferings, eq(courseOfferings.teacherId, users.id))
+        .where(eq(courseOfferings.id, assignment[0].offeringId));
+
+      const studentName = (req as any).user?.fullName || 'Student';
+      for (const teacher of teachers) {
+        await createNotificationHelper(
+          teacher.id,
+          'New Assignment Submission',
+          `${studentName} has submitted "${assignment[0].title}". Please review and grade the submission.`
+        );
+      }
+    }
+
+    if (submissionStatus === 'REJECTED_AI' && aiResult) {
+      return res.status(400).json({
+        error: 'Submission flagged as AI-generated content',
+        details: {
+          prediction: aiResult.prediction,
+          confidence: aiResult.confidence,
+          aiProbability: aiResult.probabilities.ai
+        }
+      });
+    }
 
     res.status(201).json(submission[0]);
   } catch (error) {
@@ -246,9 +416,8 @@ export const getAssignmentSubmissions = async (req: Request, res: Response) => {
       .select({
         id: assignmentSubmissions.id,
         submittedAt: assignmentSubmissions.submittedAt,
-        fileUrl: assignmentSubmissions.fileUrl,
         textAnswer: assignmentSubmissions.textAnswer,
-        aiScore: assignmentSubmissions.aiScore,
+        score: assignmentSubmissions.score,
         status: assignmentSubmissions.status,
         attemptNumber: assignmentSubmissions.attemptNumber,
         studentId: assignmentSubmissions.studentId,
@@ -297,16 +466,16 @@ export const getStudentSubmissions = async (req: Request, res: Response) => {
 export const gradeSubmission = async (req: Request, res: Response) => {
   try {
     const { submissionId } = req.params;
-    const { aiScore, status } = req.body;
+    const { score, status } = req.body;
 
-    if (typeof aiScore !== 'number' || aiScore < 0 || aiScore > 100) {
-      return res.status(400).json({ error: 'AI score must be a number between 0 and 100' });
+    if (typeof score !== 'number' || score < 0 || score > 100) {
+      return res.status(400).json({ error: 'Score must be a number between 0 and 100' });
     }
 
     const updatedSubmission = await db
       .update(assignmentSubmissions)
       .set({
-        aiScore: aiScore.toString(),
+        score: score.toString(),
         status: status || 'GRADED'
       })
       .where(eq(assignmentSubmissions.id, submissionId))
@@ -333,9 +502,8 @@ export const getStudentAllSubmissions = async (req: Request, res: Response) => {
         id: assignmentSubmissions.id,
         assignmentId: assignmentSubmissions.assignmentId,
         submittedAt: assignmentSubmissions.submittedAt,
-        fileUrl: assignmentSubmissions.fileUrl,
         textAnswer: assignmentSubmissions.textAnswer,
-        aiScore: assignmentSubmissions.aiScore,
+        score: assignmentSubmissions.score,
         status: assignmentSubmissions.status,
         attemptNumber: assignmentSubmissions.attemptNumber
       })
@@ -355,15 +523,28 @@ export const getAssignmentsForStudent = async (req: Request, res: Response) => {
   try {
     const { courseId } = req.params;
 
-    // Find course offering for this course
-    const offering = await db
+    // Support both courseId and offeringId like in quiz controller
+    let offeringIdToUse: string | null = null;
+    const tryOffering = await db
       .select({ id: courseOfferings.id })
       .from(courseOfferings)
-      .where(eq(courseOfferings.courseId, courseId))
+      .where(eq(courseOfferings.id, courseId))
       .limit(1);
 
-    if (offering.length === 0) {
-      return res.status(404).json({ error: 'Course offering not found' });
+    if (tryOffering.length > 0) {
+      offeringIdToUse = tryOffering[0].id;
+    } else {
+      // Fall back to interpreting as courseId
+      const offering = await db
+        .select({ id: courseOfferings.id })
+        .from(courseOfferings)
+        .where(eq(courseOfferings.courseId, courseId))
+        .limit(1);
+
+      if (offering.length === 0) {
+        return res.status(404).json({ error: 'Course offering not found' });
+      }
+      offeringIdToUse = offering[0].id;
     }
 
     // Get assignments for the offering
@@ -372,11 +553,14 @@ export const getAssignmentsForStudent = async (req: Request, res: Response) => {
         id: assignments.id,
         title: assignments.title,
         description: assignments.description,
+        questionType: assignments.questionType,
+        questionText: assignments.questionText,
+        questionFileUrl: assignments.questionFileUrl,
         dueAt: assignments.dueAt,
         createdAt: assignments.createdAt
       })
       .from(assignments)
-      .where(eq(assignments.offeringId, offering[0].id))
+      .where(eq(assignments.offeringId, offeringIdToUse))
       .orderBy(desc(assignments.createdAt));
 
     res.json(assignmentsList);
