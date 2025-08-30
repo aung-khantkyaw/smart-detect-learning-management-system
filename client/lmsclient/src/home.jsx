@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ArrowRight,
   Brain,
@@ -9,9 +9,28 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { NavLink } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 
 export default function Home() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+    const token = localStorage.getItem("accessToken");
+    
+    if (role && token) {
+      if (role === 'ADMIN') {
+        navigate("/admin");
+      } else if (role === 'STUDENT') {
+        navigate("/dashboard");
+      } else if (role === 'TEACHER') {
+        navigate("/teacher");
+      }
+    }
+  }, [navigate]);
+
+  const isLoggedIn = localStorage.getItem("accessToken");
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-800">
       {/* Navigation */}
@@ -24,12 +43,14 @@ export default function Home() {
             </span>
           </div>
 
-          <NavLink
-            to="/login"
-            className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg font-semibold transition-colors border border-white/30"
-          >
-            Login
-          </NavLink>
+          {!isLoggedIn && (
+            <NavLink
+              to="/login"
+              className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg font-semibold transition-colors border border-white/30"
+            >
+              Login
+            </NavLink>
+          )}
         </div>
       </nav>
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../../../../lib/api";
+import ConfirmDeleteModal from "../../../../components/ConfirmDeleteModal";
 
 export default function Quizzes() {
   const { id } = useParams(); // course offering ID
@@ -25,6 +26,10 @@ export default function Quizzes() {
     closeAt: "",
     questions: []
   });
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     fetchQuizzes();
@@ -86,15 +91,10 @@ export default function Quizzes() {
     }
   };
 
-  const handleDeleteQuiz = async (quizId) => {
-    if (!confirm("Are you sure you want to delete this quiz?")) return;
-    try {
-      await api.del(`/quizzes/${quizId}`);
-      fetchQuizzes();
-    } catch (err) {
-      console.error("Delete error:", err);
-      alert("Delete failed");
-    }
+  const handleDeleteQuiz = (quiz) => {
+    setConfirmTarget(quiz);
+    setDeleteError("");
+    setShowConfirm(true);
   };
 
   const fetchSubmissions = async (quiz) => {
@@ -141,7 +141,7 @@ export default function Quizzes() {
       return;
     }
     
-    if (newQuestion.questionType !== 'SHORT_TEXT' && newQuestion.options.every(opt => !opt.optionText.trim())) {
+    if (newQuestion.options.every(opt => !opt.optionText.trim())) {
       alert("Please add at least one option with text");
       return;
     }
@@ -151,9 +151,7 @@ export default function Quizzes() {
       questionType: newQuestion.questionType,
       prompt: newQuestion.prompt,
       points: newQuestion.points,
-      options: newQuestion.questionType !== 'SHORT_TEXT' 
-        ? newQuestion.options.filter(opt => opt.optionText.trim())
-        : []
+      options: newQuestion.options.filter(opt => opt.optionText.trim())
     };
     
     setQuestions([...questions, questionToAdd]);
@@ -282,7 +280,7 @@ export default function Quizzes() {
                           Submissions
                         </button>
                         <button
-                          onClick={() => handleDeleteQuiz(quiz.id)}
+                          onClick={() => handleDeleteQuiz(quiz)}
                           className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -538,7 +536,6 @@ export default function Quizzes() {
                       >
                         <option value="SINGLE_CHOICE">Single Choice</option>
                         <option value="MULTIPLE_CHOICE">Multiple Choice</option>
-                        <option value="SHORT_TEXT">Short Text</option>
                       </select>
                     </div>
                     <div>
@@ -564,7 +561,7 @@ export default function Quizzes() {
                     />
                   </div>
                   
-                  {newQuestion.questionType !== 'SHORT_TEXT' && (
+                  {(
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <label className="block text-sm font-medium text-gray-700">Answer Options</label>
@@ -682,6 +679,40 @@ export default function Quizzes() {
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmDeleteModal
+        open={showConfirm}
+        title="Delete Quiz"
+        message={confirmTarget ? `This will permanently delete quiz "${confirmTarget.title}" and all its questions and submissions.` : ""}
+        requiredText={confirmTarget ? `delete ${confirmTarget.title}` : ""}
+        confirmLabel="Delete"
+        error={deleteError}
+        loading={deleting}
+        onClose={() => {
+          setShowConfirm(false);
+          setConfirmTarget(null);
+          setDeleting(false);
+          setDeleteError("");
+        }}
+        onConfirm={async () => {
+          if (!confirmTarget) return;
+          try {
+            setDeleting(true);
+            setDeleteError("");
+            await api.del(`/quizzes/${confirmTarget.id}`);
+            console.log("Quiz deleted successfully");
+            setShowConfirm(false);
+            setConfirmTarget(null);
+            setDeleting(false);
+            fetchQuizzes();
+          } catch (err) {
+            console.error(err);
+            setDeleteError(err.message || "Delete failed");
+            setDeleting(false);
+          }
+        }}
+      />
       </div>
     </div>
   );

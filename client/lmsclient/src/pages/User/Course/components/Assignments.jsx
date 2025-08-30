@@ -14,6 +14,12 @@ export default function Assignments() {
   });
   const [showResultModal, setShowResultModal] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    type: "success",
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     fetchAssignments();
@@ -51,7 +57,22 @@ export default function Assignments() {
     setSubmissionData({ textAnswer: "" });
   };
 
+  const showCustomAlert = (type, title, message) => {
+    setAlertConfig({ type, title, message });
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 4000);
+  };
+
   const handleSubmit = async () => {
+    if (!submissionData.textAnswer.trim()) {
+      showCustomAlert(
+        "error",
+        "Validation Error",
+        "Please enter your answer before submitting."
+      );
+      return;
+    }
+
     const userData = JSON.parse(localStorage.getItem("userData"));
 
     const formData = new FormData();
@@ -63,12 +84,24 @@ export default function Assignments() {
         `/assignments/${selectedAssignment.id}/submit`,
         formData
       );
-      setShowSubmissionModal(false);
-      fetchSubmissions();
-      alert("Assignment submitted successfully!");
+      
+      showCustomAlert(
+        "success",
+        "Success!",
+        "Assignment submitted successfully!"
+      );
     } catch (err) {
       console.error("Error submitting assignment:", err);
-      alert("Error submitting assignment");
+      const errorMessage =
+        err.response?.data?.error || err.message || "Unknown error occurred";
+      showCustomAlert("error", "Submission Failed", errorMessage);
+    } finally {
+      // Always close modal and reset form after submission attempt
+      setShowSubmissionModal(false);
+      setSubmissionData({ textAnswer: "" });
+      
+      // Refresh submissions to update UI state
+      fetchSubmissions();
     }
   };
 
@@ -171,20 +204,31 @@ export default function Assignments() {
                         )}
                       </div>
 
-                      <div>
-                        {!submission ? (
+                      <div className="flex space-x-2">
+                        {!submission && !isOverdue ? (
                           <button
                             onClick={() => openSubmissionModal(assignment)}
-                            disabled={isOverdue}
-                            className={`px-4 py-2 text-sm font-medium rounded-md ${
-                              isOverdue
-                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                : "bg-green-600 hover:bg-green-700 text-white"
-                            }`}
+                            className="px-4 py-2 text-sm font-medium rounded-md bg-green-600 hover:bg-green-700 text-white"
                           >
-                            {isOverdue ? "Overdue" : "Submit"}
+                            Submit
                           </button>
-                        ) : (
+                        ) : submission && submission.status === "PENDING" && !isOverdue ? (
+                          <button
+                            onClick={() => openSubmissionModal(assignment)}
+                            className="px-4 py-2 text-sm font-medium rounded-md bg-orange-600 hover:bg-orange-700 text-white"
+                          >
+                            Resubmit
+                          </button>
+                        ) : isOverdue && !submission ? (
+                          <button
+                            disabled
+                            className="px-4 py-2 text-sm font-medium rounded-md bg-gray-300 text-gray-500 cursor-not-allowed"
+                          >
+                            Overdue
+                          </button>
+                        ) : null}
+
+                        {submission && (
                           <button
                             onClick={() => viewResult(submission)}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
@@ -204,53 +248,117 @@ export default function Assignments() {
 
       {/* Submission Modal */}
       {showSubmissionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white max-w-2xl w-full">
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Submit Assignment
-              </h3>
-            </div>
-
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  📝 Your Answer
-                </label>
-                <div className="relative">
-                  <textarea
-                    value={submissionData.textAnswer}
-                    onChange={(e) =>
-                      setSubmissionData({
-                        ...submissionData,
-                        textAnswer: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none shadow-sm"
-                    rows="8"
-                    placeholder="Write your detailed answer here... Be thorough and explain your reasoning."
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6 text-white relative">
+              <button
+                onClick={() => setShowSubmissionModal(false)}
+                className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
                   />
-                  <div className="absolute bottom-3 right-3 text-xs text-gray-500 bg-white px-2 py-1 rounded border">
-                    {submissionData.textAnswer.trim().split(/\s+/).filter(word => word.length > 0).length} words
-                  </div>
+                </svg>
+              </button>
+              <div className="flex items-center space-x-4">
+                <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-xl font-bold">
+                  📝
                 </div>
-                <div className="mt-2 text-sm text-gray-600">
-                  💡 <strong>Tip:</strong> Include examples, explanations, and show your work for better evaluation.
+                <div>
+                  <h3 className="text-2xl font-bold">Submit Assignment</h3>
+                  <p className="text-white/90 text-sm mt-1">
+                    {selectedAssignment?.title}
+                  </p>
                 </div>
               </div>
+            </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
+            {/* Content */}
+            <div className="p-8 overflow-y-auto max-h-[calc(85vh-140px)]">
+              {/* Assignment Details */}
+              <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <h4 className="font-semibold text-blue-900 mb-2">
+                  Assignment Details
+                </h4>
+                <p className="text-blue-800 text-sm">
+                  {selectedAssignment?.description}
+                </p>
+                {selectedAssignment?.questionText && (
+                  <div className="mt-3 p-3 bg-white rounded-lg border">
+                    <p className="font-medium text-gray-700 mb-1">Question:</p>
+                    <p className="text-gray-900">
+                      {selectedAssignment.questionText}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Answer Input */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-lg font-semibold text-gray-800 mb-3">
+                    ✍️ Your Answer
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      value={submissionData.textAnswer}
+                      onChange={(e) =>
+                        setSubmissionData({
+                          ...submissionData,
+                          textAnswer: e.target.value,
+                        })
+                      }
+                      className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 resize-none shadow-sm text-gray-800 leading-relaxed"
+                      rows="12"
+                      placeholder="Write your detailed answer here... Be thorough and explain your reasoning step by step."
+                    />
+                    <div className="absolute bottom-4 right-4 flex items-center space-x-3">
+                      <div className="text-xs text-gray-500 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full border shadow-sm">
+                        {
+                          submissionData.textAnswer
+                            .trim()
+                            .split(/\s+/)
+                            .filter((word) => word.length > 0).length
+                        }{" "}
+                        words
+                      </div>
+                      <div className="text-xs text-gray-500 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full border shadow-sm">
+                        {submissionData.textAnswer.length} characters
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-8 py-6 bg-gray-50 border-t flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                Make sure to review your answer before submitting
+              </div>
+              <div className="flex space-x-3">
                 <button
                   onClick={() => setShowSubmissionModal(false)}
-                  className="px-4 py-2 border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+                  className="px-6 py-2.5 border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                  disabled={!submissionData.textAnswer.trim()}
+                  className="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                 >
-                  Submit
+                  Submit Assignment
                 </button>
               </div>
             </div>
@@ -313,6 +421,93 @@ export default function Assignments() {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Alert */}
+      {showAlert && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
+          <div
+            className={`rounded-xl shadow-2xl border-l-4 p-4 max-w-md ${
+              alertConfig.type === "success"
+                ? "bg-green-50 border-green-500 text-green-800"
+                : alertConfig.type === "error"
+                ? "bg-red-50 border-red-500 text-red-800"
+                : "bg-blue-50 border-blue-500 text-blue-800"
+            }`}
+          >
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                {alertConfig.type === "success" && (
+                  <svg
+                    className="w-6 h-6 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                )}
+                {alertConfig.type === "error" && (
+                  <svg
+                    className="w-6 h-6 text-red-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                )}
+                {alertConfig.type === "info" && (
+                  <svg
+                    className="w-6 h-6 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-sm">{alertConfig.title}</h4>
+                <p className="text-sm mt-1 opacity-90">{alertConfig.message}</p>
+              </div>
+              <button
+                onClick={() => setShowAlert(false)}
+                className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
         </div>

@@ -839,7 +839,7 @@ export default function UserList() {
                           </label>
                           <div className="flex items-stretch">
                             <span className="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-700 rounded-l-lg text-sm whitespace-nowrap">
-                              sdlms-
+                              SDLMS-
                             </span>
                             <input
                               type="text"
@@ -847,7 +847,7 @@ export default function UserList() {
                               pattern="^[0-9]+$"
                               title="Digits only"
                               value={(formData.studentNumber || "").replace(
-                                /^sdlms-/,
+                                /^SDLMS-/,
                                 ""
                               )}
                               onChange={(e) => {
@@ -858,7 +858,7 @@ export default function UserList() {
                                 setFormData({
                                   ...formData,
                                   studentNumber: digits
-                                    ? `sdlms-${digits}`
+                                    ? `SDLMS-${digits}`
                                     : "",
                                 });
                               }}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { api } from "../../lib/api";
 
 export default function TeacherCourseOverview() {
   const { id } = useParams();
@@ -11,42 +12,26 @@ export default function TeacherCourseOverview() {
   }, [id]);
 
   const fetchCourseDetails = async () => {
-    const token = localStorage.getItem("accessToken");
-    
     try {
-      const [offeringRes, coursesRes, academicYearsRes] = await Promise.all([
-        fetch(`http://localhost:3000/api/course-offerings`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch("http://localhost:3000/api/courses", {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch("http://localhost:3000/api/academic-years", {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+      const [offerings, courses, academicYears] = await Promise.all([
+        api.get("course-offerings"),
+        api.get("courses"),
+        api.get("academic-years")
       ]);
 
-      const [offeringsData, coursesData, academicYearsData] = await Promise.all([
-        offeringRes.json(), coursesRes.json(), academicYearsRes.json()
-      ]);
-
-      if (offeringsData.status === "success") {
-        const offering = offeringsData.data.find(o => o.id === id);
-        const allCourses = coursesData.status === "success" ? coursesData.data : [];
-        const allAcademicYears = academicYearsData.status === "success" ? academicYearsData.data : [];
+      const offering = offerings.find(o => o.id === id);
+      
+      if (offering) {
+        const courseInfo = courses.find(c => c.id === offering.courseId);
+        const academicYear = academicYears.find(y => y.id === offering.academicYearId);
         
-        if (offering) {
-          const courseInfo = allCourses.find(c => c.id === offering.courseId);
-          const academicYear = allAcademicYears.find(y => y.id === offering.academicYearId);
-          
-          setCourse({
-            ...offering,
-            courseName: courseInfo?.title || 'Unknown Course',
-            courseCode: courseInfo?.code || 'N/A',
-            courseDescription: courseInfo?.description || '',
-            academicYear: academicYear?.name || 'N/A'
-          });
-        }
+        setCourse({
+          ...offering,
+          courseName: courseInfo?.title || 'Unknown Course',
+          courseCode: courseInfo?.code || 'N/A',
+          courseDescription: courseInfo?.description || '',
+          academicYear: academicYear?.name || 'N/A'
+        });
       }
     } catch (err) {
       console.error("Error fetching course details:", err);

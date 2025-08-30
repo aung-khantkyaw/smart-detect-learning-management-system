@@ -65,6 +65,10 @@ export const loginUser = async (req: Request, res: Response) => {
       return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
     }
 
+    if (user[0].isActive === false) {
+      return res.status(403).json({ status: 'error', message: 'User is banned! Please contact support.' });
+    }
+
     const token = generateToken(user[0].id);
 
     const loginUser = await db.update(users).set({ lastLoginAt: new Date(), accessToken: token }).where(eq(users.id, user[0].id)).returning();

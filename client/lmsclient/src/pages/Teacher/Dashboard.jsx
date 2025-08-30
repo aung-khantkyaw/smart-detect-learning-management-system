@@ -143,6 +143,44 @@ export default function TeacherDashboard() {
 
                 <li>
                   <NavLink
+                    to="/teacher/profile"
+                    className={({ isActive }) =>
+                      [
+                        "relative flex items-center px-3 py-2.5 transition-colors duration-150 rounded-md group",
+                        isActive
+                          ? "bg-gray-100 text-gray-900 border-l-2 border-blue-500"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                      ].join(" ")
+                    }
+                  >
+                    <div className="grid h-8 w-8 place-items-center rounded-md bg-gray-100 text-gray-500 transition-colors group-hover:bg-gray-200 group-hover:text-gray-700">
+                      <svg
+                        className="h-4 w-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                      </svg>
+                    </div>
+                    <span className="ml-2 text-sm font-medium">Profile</span>
+                    <svg
+                      className="ml-auto h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </NavLink>
+                </li>
+
+                <li>
+                  <NavLink
                     to="/teacher/notifications"
                     className={({ isActive }) =>
                       [
@@ -166,44 +204,6 @@ export default function TeacherDashboard() {
                     <span className="ml-2 text-sm font-medium">
                       Notifications
                     </span>
-                    <svg
-                      className="ml-auto h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </NavLink>
-                </li>
-
-                <li>
-                  <NavLink
-                    to="/teacher/profile"
-                    className={({ isActive }) =>
-                      [
-                        "relative flex items-center px-3 py-2.5 transition-colors duration-150 rounded-md group",
-                        isActive
-                          ? "bg-gray-100 text-gray-900 border-l-2 border-blue-500"
-                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                      ].join(" ")
-                    }
-                  >
-                    <div className="grid h-8 w-8 place-items-center rounded-md bg-gray-100 text-gray-500 transition-colors group-hover:bg-gray-200 group-hover:text-gray-700">
-                      <svg
-                        className="h-4 w-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                      </svg>
-                    </div>
-                    <span className="ml-2 text-sm font-medium">Profile</span>
                     <svg
                       className="ml-auto h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400"
                       viewBox="0 0 20 20"
@@ -303,14 +303,53 @@ export default function TeacherDashboard() {
 
           <div className="p-4 sm:ml-64">
             {/* Top Header with Notification Bell */}
-            <div className="flex justify-between items-center mb-6 bg-white rounded-lg shadow-sm border p-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Teacher Dashboard</h1>
-                <p className="text-gray-600">Welcome back, {authUser?.fullName || 'Teacher'}!</p>
+            <div className="flex justify-between items-center mb-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg border-0 p-6">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <svg
+                    className="h-6 w-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white">
+                    Teacher Dashboard
+                  </h1>
+                  <p className="text-blue-100">
+                    Welcome back, {authUser?.fullName || "Teacher"}!
+                  </p>
+                </div>
               </div>
-              <NotificationBell />
+              <div className="flex items-center gap-3">
+                <NotificationBell />
+                <div className="h-8 w-px bg-white/20"></div>
+                <div className="text-right">
+                  <p className="text-sm text-white font-medium">
+                    {new Date().toLocaleDateString("en-US", {
+                      weekday: "long",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
+                  <p className="text-xs text-blue-100">
+                    {new Date().toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
             </div>
-            
+
             <Outlet />
           </div>
         </div>
