@@ -78,7 +78,6 @@ export default function Students() {
           user.role === "STUDENT" && !enrolledStudentIds.includes(user.id)
       );
       setAvailableStudents(availableStudentsList);
-
       // Fetch per-student stats (total submissions and REJECTED_AI)
       try {
         setStatsLoading(true);

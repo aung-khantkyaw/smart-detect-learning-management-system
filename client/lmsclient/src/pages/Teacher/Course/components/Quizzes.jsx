@@ -679,7 +679,6 @@ export default function Quizzes() {
           </div>
         </div>
       )}
-
       {/* Confirm Delete Modal */}
       <ConfirmDeleteModal
         open={showConfirm}

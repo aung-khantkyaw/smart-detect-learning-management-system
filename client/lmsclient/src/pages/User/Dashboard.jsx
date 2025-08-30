@@ -93,7 +93,6 @@ export default function StudentDashboard() {
                     </svg>
                   </NavLink>
                 </li>
-
                 <li>
                   <NavLink
                     to="/dashboard"
