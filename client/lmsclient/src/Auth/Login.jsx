@@ -1,13 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, Brain, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router";
 import { api } from "../lib/api";
 
 export default function LoginForm() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+    const token = localStorage.getItem("accessToken");
+    
+    if (role && token) {
+      if (role === 'ADMIN') {
+        navigate("/admin");
+      } else if (role === 'STUDENT') {
+        navigate("/dashboard");
+      } else if (role === 'TEACHER') {
+        navigate("/teacher");
+      }
+    }
+  }, [navigate]);
 
  const handleLogin = async (e) => {
     e.preventDefault();

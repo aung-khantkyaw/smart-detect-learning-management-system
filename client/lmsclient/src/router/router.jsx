@@ -17,7 +17,6 @@ import Assignments from "../pages/User/Course/components/Assignments.jsx";
 import Chat from "../pages/User/Course/components/CourseChat.jsx";
 import Profile from "../pages/User/Profile/Profile.jsx";
 import Notifications from "../pages/User/Notifications/Notifications.jsx";
-import UserChat from "../pages/User/Chat/Chat.jsx";
 import AChat from "../pages/User/Chat/Academicchat.jsx";
 
 //Admin
@@ -77,9 +76,8 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <CoursePage /> },
       { path: "profile", element: <Profile /> },
-      { path: "notifications", element: <Notifications /> },
-      { path: "chat", element: <UserChat /> },
       { path: "academic-chat", element: <AChat /> }, //need with course-id for dbms
+      { path: "notifications", element: <Notifications /> },
 
       {
         path: "courses/:id", // Fixed: removed leading slash for nested route

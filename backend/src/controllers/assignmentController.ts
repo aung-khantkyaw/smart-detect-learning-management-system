@@ -11,6 +11,7 @@ import {
 import { createNotification as createNotificationHelper } from './notificationController';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { sql } from 'drizzle-orm';
 
 // Get all assignments
 export const getAllAssignments = async (req: Request, res: Response) => {
@@ -30,6 +31,134 @@ export const getAllAssignments = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching assignments:', error);
     res.status(500).json({ error: 'Failed to fetch assignments' });
+  }
+};
+
+// Get current (authenticated) student's submission stats across all assignments
+export const getMySubmissionStats = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const rows = await db
+      .select({
+        total: sql<number>`COUNT(*)`,
+        rejected: sql<number>`SUM(CASE WHEN ${assignmentSubmissions.status} = 'REJECTED_AI' THEN 1 ELSE 0 END)`
+      })
+      .from(assignmentSubmissions)
+      .where(eq(assignmentSubmissions.studentId, userId));
+
+    const totalSubmissions = Number(rows[0]?.total) || 0;
+    const rejectedAI = Number(rows[0]?.rejected) || 0;
+
+    return res.json({ studentId: userId, totalSubmissions, rejectedAI });
+  } catch (error) {
+    console.error('Error fetching my submission stats:', error);
+    return res.status(500).json({ error: 'Failed to fetch my submission stats' });
+  }
+};
+
+// Get per-student submission stats across all assignments
+export const getStudentSubmissionStats = async (req: Request, res: Response) => {
+  try {
+    const { studentId } = req.params;
+
+    const rows = await db
+      .select({
+        total: sql<number>`COUNT(*)`,
+        rejected: sql<number>`SUM(CASE WHEN ${assignmentSubmissions.status} = 'REJECTED_AI' THEN 1 ELSE 0 END)`
+      })
+      .from(assignmentSubmissions)
+      .where(eq(assignmentSubmissions.studentId, studentId));
+
+    const totalSubmissions = Number(rows[0]?.total || 0);
+    const rejectedAI = Number(rows[0]?.rejected || 0);
+
+    console.log(`Fetched submission stats for student ${studentId}: total=${totalSubmissions}, rejectedAI=${rejectedAI}`);
+    return res.json({ studentId, totalSubmissions, rejectedAI });
+  } catch (error) {
+    console.error('Error fetching student submission stats:', error);
+    return res.status(500).json({ error: 'Failed to fetch student submission stats' });
+  }
+};
+
+// Get AI flag count for a specific student in a specific offering
+export const getAIFlagCount = async (req: Request, res: Response) => {
+  try {
+    const { offeringId, id: studentId } = req.params;
+
+    // Get AI flag count from ai_flags table
+    const rows = await db
+      .select({
+        flaggedCount: aiFlags.flaggedCount
+      })
+      .from(aiFlags)
+      .where(
+        and(
+          eq(aiFlags.offeringId, offeringId),
+          eq(aiFlags.studentId, studentId)
+        )
+      );
+
+    const count = Number(rows[0]?.flaggedCount || 0);
+
+    console.log(`AI flag count for student ${studentId} in offering ${offeringId}: ${count}`);
+    return res.json({ count });
+  } catch (error) {
+    console.error('Error fetching AI flag count:', error);
+    return res.status(500).json({ error: 'Failed to fetch AI flag count' });
+  }
+};
+
+// Get REJECTED_AI counts per student for an offering (teacher view)
+export const getRejectedAICountsForOffering = async (req: Request, res: Response) => {
+  try {
+    const { offeringId } = req.params;
+
+    if (!offeringId) {
+      return res.status(400).json({ error: 'Offering ID is required' });
+    }
+
+    // Ensure offering exists
+    const offering = await db
+      .select({ id: courseOfferings.id })
+      .from(courseOfferings)
+      .where(eq(courseOfferings.id, offeringId))
+      .limit(1);
+
+    if (offering.length === 0) {
+      return res.status(404).json({ error: 'Course offering not found' });
+    }
+
+    // Aggregate counts of REJECTED_AI submissions grouped by studentId for assignments in this offering
+    const rows = await db
+      .select({
+        studentId: assignmentSubmissions.studentId,
+        count: sql<number>`COUNT(*)`
+      })
+      .from(assignmentSubmissions)
+      .leftJoin(assignments, eq(assignments.id, assignmentSubmissions.assignmentId))
+      .where(
+        and(
+          eq(assignments.offeringId, offeringId),
+          eq(assignmentSubmissions.status, 'REJECTED_AI')
+        )
+      )
+      .groupBy(assignmentSubmissions.studentId);
+
+    // Return as { studentId: count }
+    const map: Record<string, number> = {};
+    for (const r of rows) {
+      if (r.studentId) map[r.studentId] = Number(r.count) || 0;
+    }
+
+    console.log(`Fetched REJECTED_AI counts for offering ${offeringId}, students affected: ${Object.keys(map).length}`);
+    return res.json({ offeringId, counts: map });
+  } catch (error) {
+    console.error('Error fetching REJECTED_AI counts:', error);
+    return res.status(500).json({ error: 'Failed to fetch REJECTED_AI counts' });
   }
 };
 
@@ -192,7 +321,7 @@ export const deleteAssignment = async (req: Request, res: Response) => {
 // AI Detection helper function
 const checkAIContent = async (text: string): Promise<{ prediction: string; confidence: number; probabilities: { human: number; ai: number } }> => {
   try {
-    const response = await fetch('https://laziestant-ai-text-detection.onrender.com/predict', {
+    const response = await fetch('https://aungkhantkyaw.pythonanywhere.com/predict', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -292,7 +421,18 @@ export const submitAssignment = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Assignment is overdue' });
     }
 
-    // Get the latest attempt number
+    // Check for existing PENDING submission (from teacher giving chance)
+    const existingPendingSubmission = await db
+      .select()
+      .from(assignmentSubmissions)
+      .where(and(
+        eq(assignmentSubmissions.assignmentId, assignmentId),
+        eq(assignmentSubmissions.studentId, userId),
+        eq(assignmentSubmissions.status, 'PENDING')
+      ))
+      .limit(1);
+
+    // Get the latest attempt number for new submissions
     const latestSubmission = await db
       .select({ attemptNumber: assignmentSubmissions.attemptNumber })
       .from(assignmentSubmissions)
@@ -303,7 +443,7 @@ export const submitAssignment = async (req: Request, res: Response) => {
       .orderBy(desc(assignmentSubmissions.attemptNumber))
       .limit(1);
 
-    const attemptNumber = latestSubmission.length > 0 ? latestSubmission[0].attemptNumber + 1 : 1;
+    const attemptNumber = latestSubmission.length > 0 ? latestSubmission[0].attemptNumber : 1;
 
     // Check AI content
     let aiResult;
@@ -354,22 +494,40 @@ export const submitAssignment = async (req: Request, res: Response) => {
       // If AI detection fails, allow the submission to proceed
     }
 
-    const submissionId = uuidv4();
+    let submission;
 
-    // Create submission
-    const submission = await db
-      .insert(assignmentSubmissions)
-      .values({
-        id: submissionId,
-        assignmentId,
-        studentId: userId,
-        submittedAt: now,
-        textAnswer,
-        score: null, // Teacher will grade later
-        status: submissionStatus as 'PENDING' | 'SUBMITTED' | 'GRADED' | 'REJECTED_AI',
-        attemptNumber
-      })
-      .returning();
+    // If there's an existing PENDING submission, update it and increment attempt number
+    if (existingPendingSubmission.length > 0) {
+      const currentAttempt = existingPendingSubmission[0].attemptNumber || 1;
+      submission = await db
+        .update(assignmentSubmissions)
+        .set({
+          submittedAt: now,
+          textAnswer,
+          status: submissionStatus as 'PENDING' | 'SUBMITTED' | 'GRADED' | 'REJECTED_AI',
+          attemptNumber: currentAttempt + 1 // Increment attempt number on resubmission
+        })
+        .where(eq(assignmentSubmissions.id, existingPendingSubmission[0].id))
+        .returning();
+    } else {
+      // Create new submission
+      const submissionId = uuidv4();
+      const newAttemptNumber = latestSubmission.length > 0 ? latestSubmission[0].attemptNumber + 1 : 1;
+      
+      submission = await db
+        .insert(assignmentSubmissions)
+        .values({
+          id: submissionId,
+          assignmentId,
+          studentId: userId,
+          submittedAt: now,
+          textAnswer,
+          score: null,
+          status: submissionStatus as 'PENDING' | 'SUBMITTED' | 'GRADED' | 'REJECTED_AI',
+          attemptNumber: newAttemptNumber
+        })
+        .returning();
+    }
 
     // Notify teacher about new submission (only if not flagged)
     if (submissionStatus === 'SUBMITTED') {
@@ -567,5 +725,60 @@ export const getAssignmentsForStudent = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching assignments for student:', error);
     res.status(500).json({ error: 'Failed to fetch assignments' });
+  }
+};
+
+// Give student a chance to resubmit (reset REJECTED_AI status)
+export const giveResubmissionChance = async (req: Request, res: Response) => {
+  try {
+    const { submissionId } = req.params;
+
+    // Get the submission with attempt number
+    const submission = await db
+      .select({
+        id: assignmentSubmissions.id,
+        status: assignmentSubmissions.status,
+        attemptNumber: assignmentSubmissions.attemptNumber,
+        studentId: assignmentSubmissions.studentId
+      })
+      .from(assignmentSubmissions)
+      .where(eq(assignmentSubmissions.id, submissionId))
+      .limit(1);
+
+    if (submission.length === 0) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+
+    const sub = submission[0];
+
+    // Only allow for REJECTED_AI submissions
+    if (sub.status !== 'REJECTED_AI') {
+      return res.status(400).json({ error: 'Can only give chance to REJECTED_AI submissions' });
+    }
+
+    // Check if student has exceeded max attempts (3)
+    if (sub.attemptNumber >= 3) {
+      return res.status(400).json({ error: 'Student has already reached maximum attempts (3)' });
+    }
+
+    // Update submission status to allow resubmission
+    await db
+      .update(assignmentSubmissions)
+      .set({
+        status: 'PENDING' // Reset to pending so student can resubmit
+      })
+      .where(eq(assignmentSubmissions.id, submissionId));
+
+    // Notify student about the chance
+    await createNotification(
+      sub.studentId,
+      'Resubmission Chance Given',
+      'Your teacher has given you another chance to resubmit your assignment. Please submit original work.'
+    );
+
+    return res.json({ message: 'Resubmission chance given successfully' });
+  } catch (error) {
+    console.error('Error giving resubmission chance:', error);
+    return res.status(500).json({ error: 'Failed to give resubmission chance' });
   }
 };

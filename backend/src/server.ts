@@ -25,6 +25,7 @@ import materialRoutes from './routes/materialRoutes';
 import quizRoutes from './routes/quizRoutes';
 import assignmentRoutes from './routes/assignmentRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import aiFlagRoutes from './routes/aiFlagRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -97,6 +98,7 @@ app.use('/api/materials', materialRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/ai-flag', aiFlagRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

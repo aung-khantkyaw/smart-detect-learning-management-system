@@ -101,7 +101,7 @@ export default function NotificationBell() {
       {/* Notification Bell */}
       <button
         onClick={handleBellClick}
-        className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full transition-colors"
+        className="relative p-2 text-white hover:text-blue-100 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-full transition-colors"
       >
         <svg
           className="w-6 h-6"

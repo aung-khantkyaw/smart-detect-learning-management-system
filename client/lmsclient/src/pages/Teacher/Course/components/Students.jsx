@@ -10,6 +10,8 @@ export default function Students() {
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [majorsMap, setMajorsMap] = useState({});
+  const [studentStats, setStudentStats] = useState({}); // { [studentId]: { totalSubmissions, rejectedAI } }
+  const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
     fetchEnrolledStudents();
@@ -76,6 +78,30 @@ export default function Students() {
           user.role === "STUDENT" && !enrolledStudentIds.includes(user.id)
       );
       setAvailableStudents(availableStudentsList);
+      // Fetch per-student stats (total submissions and REJECTED_AI)
+      try {
+        setStatsLoading(true);
+        const pairs = await Promise.all(
+          enrolledStudents.map(async (e) => {
+            try {
+              // Get total submissions (all assignments)
+              const statsRes = await api.get(`/assignments/submissions/student/${e.studentId}/stats`);
+              // Get AI flag count for this specific offering
+              const aiFlagRes = await api.get(`/assignments/ai-flag/${id}/${e.studentId}/count`);
+              return [e.studentId, { 
+                totalSubmissions: statsRes?.totalSubmissions || 0, 
+                rejectedAI: aiFlagRes?.count || 0 
+              }];
+            } catch (err) {
+              console.warn('Failed to fetch stats for', e.studentId, err);
+              return [e.studentId, { totalSubmissions: 0, rejectedAI: 0 }];
+            }
+          })
+        );
+        setStudentStats(Object.fromEntries(pairs));
+      } finally {
+        setStatsLoading(false);
+      }
     } catch (err) {
       console.error("Error fetching enrolled students:", err);
       setStudents([]);
@@ -185,6 +211,12 @@ export default function Students() {
                     Major
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Submissions
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Rejected AI
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Enrolled Date
                   </th>
                 </tr>
@@ -210,6 +242,36 @@ export default function Students() {
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">
                         {enrollment.studentMajor}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {statsLoading ? (
+                          <span className="inline-flex items-center text-gray-500">
+                            <svg className="animate-spin h-4 w-4 mr-2 text-gray-400" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            Loading
+                          </span>
+                        ) : (
+                          studentStats[enrollment.studentId]?.totalSubmissions ?? 0
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {statsLoading ? (
+                          <span className="inline-flex items-center text-gray-500">
+                            <svg className="animate-spin h-4 w-4 mr-2 text-gray-400" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            Loading
+                          </span>
+                        ) : (
+                          studentStats[enrollment.studentId]?.rejectedAI ?? 0
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
