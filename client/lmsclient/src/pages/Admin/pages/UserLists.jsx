@@ -30,7 +30,6 @@ export default function UserList() {
   const [positions, setPositions] = useState([]);
   const [majors, setMajors] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
-  const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [emailUsername, setEmailUsername] = useState("");
 
   function getEmailUsername(email) {
@@ -193,7 +192,7 @@ export default function UserList() {
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="All">All Roles</option>
-
+                <option value="ADMIN">Admin</option>
                 <option value="TEACHER">Teacher</option>
                 <option value="STUDENT">Student</option>
               </select>
@@ -201,258 +200,155 @@ export default function UserList() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Users ({filteredUsers.length})
-            </h3>
+        <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl border border-gray-200/50 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold">
+                  👥 Users ({filteredUsers.length})
+                </h3>
+                <p className="text-blue-100 text-sm mt-1">Manage system users and permissions</p>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
+                <span className="text-sm font-medium">{filteredUsers.length} Total</span>
+              </div>
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((u) => (
-                    <tr
-                      key={u.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                            {u.fullName?.charAt(0) || "U"}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {u.fullName}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {u.email}
-                            </div>
-                          </div>
+          <div className="p-6">
+            {filteredUsers.length > 0 ? (
+              <div className="grid gap-4">
+                {filteredUsers.map((u) => (
+                  <div
+                    key={u.id}
+                    className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 p-6"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className={`h-14 w-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg ${
+                          u.role === 'ADMIN' ? 'bg-gradient-to-r from-red-500 to-red-600' :
+                          u.role === 'TEACHER' ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
+                          'bg-gradient-to-r from-green-500 to-green-600'
+                        }`}>
+                          {u.fullName?.charAt(0) || "U"}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadge(
-                            u.role
-                          )}`}
-                        >
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            u.isActive
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {u.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="relative inline-block text-left">
-                          <button
-                            type="button"
-                            aria-haspopup="menu"
-                            aria-expanded={actionMenuOpenId === u.id}
-                            onClick={() =>
-                              setActionMenuOpenId((prev) =>
-                                prev === u.id ? null : u.id
-                              )
-                            }
-                            className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            title="Actions"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                              xmlns="http://www.w3.org/2000/svg"
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <h4 className="text-lg font-semibold text-gray-900">
+                              {u.fullName}
+                            </h4>
+                            <span
+                              className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getRoleBadge(u.role)}`}
                             >
-                              <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                          </button>
-
-                          {actionMenuOpenId === u.id && (
-                            <div
-                              role="menu"
-                              className="absolute right-0 z-20 mt-2 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none"
+                              {u.role === 'ADMIN' ? '👑 Admin' : u.role === 'TEACHER' ? '👨🏫 Teacher' : '🎓 Student'}
+                            </span>
+                            <span
+                              className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                                u.isActive
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
                             >
-                              <div className="py-1">
-                                <button
-                                  role="menuitem"
-                                  onClick={() => {
-                                    setViewingUser(u);
-                                    setActionMenuOpenId(null);
-                                  }}
-                                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                >
-                                  <svg
-                                    className="w-4 h-4 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                    />
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                    />
-                                  </svg>
-                                  View
-                                </button>
-                                <button
-                                  role="menuitem"
-                                  onClick={() => {
-                                    setEditingUser(u);
-                                    setFormData({
-                                      fullName: u.fullName || "",
-                                      email: u.email || "",
-                                      password: "",
-                                      role: u.role || "STUDENT",
-                                      department_id: u.department_id || "",
-                                      position_id: u.position_id || "",
-                                      major_id: u.major_id || "",
-                                      academic_year_id:
-                                        u.academic_year_id || "",
-                                      studentNumber: u.studentNumber || "",
-                                    });
-                                    setShowCreateModal(true);
-                                    setActionMenuOpenId(null);
-                                  }}
-                                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                >
-                                  <svg
-                                    className="w-4 h-4 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"
-                                    />
-                                  </svg>
-                                  Edit
-                                </button>
-                                <button
-                                  role="menuitem"
-                                  onClick={() => {
-                                    handleToggleActive(u);
-                                    setActionMenuOpenId(null);
-                                  }}
-                                  className={`flex items-center w-full text-left px-3 py-2 text-sm ${
-                                    u.isActive
-                                      ? "text-orange-600 hover:bg-orange-50"
-                                      : "text-green-600 hover:bg-green-50"
-                                  }`}
-                                >
-                                  <svg
-                                    className="w-4 h-4 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                                    />
-                                  </svg>
-                                  {u.isActive ? "Ban" : "Unban"}
-                                </button>
-                                <button
-                                  role="menuitem"
-                                  onClick={() => {
-                                    setConfirmTarget(u);
-                                    setDeleteError("");
-                                    setShowConfirm(true);
-                                    setActionMenuOpenId(null);
-                                  }}
-                                  className="flex items-center w-full text-left px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
-                                >
-                                  <svg
-                                    className="w-4 h-4 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                    />
-                                  </svg>
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
+                              {u.isActive ? "✅ Active" : "❌ Inactive"}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 mt-1">
+                            📧 {u.email}
+                          </p>
+                          {u.role === 'STUDENT' && u.studentNumber && (
+                            <p className="text-gray-500 text-sm mt-1">
+                              🆔 {u.studentNumber}
+                            </p>
                           )}
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-12 text-center">
-                      <div className="text-gray-500">
-                        <svg
-                          className="mx-auto h-12 w-12 text-gray-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
-                          />
-                        </svg>
-                        <h3 className="mt-2 text-sm font-medium text-gray-900">
-                          No users found
-                        </h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Try adjusting your search or filter criteria.
-                        </p>
                       </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => {
+                            setViewingUser(u);
+                          }}
+                          className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
+                          title="View Details"
+                        >
+                          👁️ View
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingUser(u);
+                            setFormData({
+                              fullName: u.fullName || "",
+                              email: u.email || "",
+                              password: "",
+                              role: u.role || "STUDENT",
+                              department_id: u.department_id || "",
+                              position_id: u.position_id || "",
+                              major_id: u.major_id || "",
+                              academic_year_id: u.academic_year_id || "",
+                              studentNumber: u.studentNumber || "",
+                            });
+                            setShowCreateModal(true);
+                          }}
+                          className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
+                          title="Edit User"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => handleToggleActive(u)}
+                          className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                            u.isActive
+                              ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                              : "bg-green-100 text-green-700 hover:bg-green-200"
+                          }`}
+                          title={u.isActive ? "Deactivate" : "Activate"}
+                        >
+                          {u.isActive ? "🚫 Ban" : "✅ Unban"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setConfirmTarget(u);
+                            setDeleteError("");
+                            setShowConfirm(true);
+                          }}
+                          className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+                          title="Delete User"
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mx-auto mb-6">
+                  <svg
+                    className="h-10 w-10 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  No users found
+                </h3>
+                <p className="text-gray-500">
+                  Try adjusting your search or filter criteria.
+                </p>
+              </div>
+            )}
           </div>
         </div>
+
+
 
         {/* User Details Modal */}
         {viewingUser && (
@@ -609,7 +505,24 @@ export default function UserList() {
                   {/* Role Selection */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-800 mb-3">User Role</label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
+                      <label className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        formData.role === "ADMIN" 
+                          ? "border-red-500 bg-red-50 text-red-700" 
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}>
+                        <input
+                          type="radio"
+                          value="ADMIN"
+                          checked={formData.role === "ADMIN"}
+                          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                          className="sr-only"
+                        />
+                        <div className="text-center w-full">
+                          <div className="text-2xl mb-1">👑</div>
+                          <div className="font-medium text-sm">Admin</div>
+                        </div>
+                      </label>
                       <label className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
                         formData.role === "STUDENT" 
                           ? "border-blue-500 bg-blue-50 text-blue-700" 

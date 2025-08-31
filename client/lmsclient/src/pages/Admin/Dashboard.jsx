@@ -490,6 +490,45 @@ export default function Home() {
                     </svg>
                   </NavLink>
                 </li>
+
+                <li>
+                  <NavLink
+                    to="/admin/backups-restore"
+                    className={({ isActive }) =>
+                      [
+                        "relative flex items-center px-3 py-2.5 transition-colors duration-150 rounded-md group",
+                        isActive
+                          ? "bg-gray-100 text-gray-900 border-l-2 border-blue-500"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                      ].join(" ")
+                    }
+                  >
+                    <div className="grid h-8 w-8 place-items-center rounded-md bg-gray-100 text-gray-500 transition-colors group-hover:bg-gray-200 group-hover:text-gray-700">
+                      <svg
+                        className="h-4 w-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 2a10 10 0 00-10 10c0 4.418 2.686 8.164 6.553 9.688l-1.053-3.157A7.963 7.963 0 013 12a8 8 0 0114.553-4.688l1.053 3.157A9.964 9.964 0 0022 12a10 10 0 00-10-10zm-1 15h2v2h-2v-2zm0-12h2v10h-2V5z" />
+                      </svg>
+                    </div>
+                    <span className="ml-2 text-sm font-medium">Backups Restore</span>
+                    <svg
+                      className="ml-auto h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </NavLink>
+                </li>
+
               </ul>
               {/* Authenticated user panel with dropdown */}
               <div className="mt-3 border-t pt-3 relative" ref={userMenuRef}>

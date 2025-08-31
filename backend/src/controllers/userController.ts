@@ -5,7 +5,7 @@ import { and, desc, eq, not, inArray, sql } from 'drizzle-orm';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
-    const allUsers = await db.select().from(users).where(not(eq(users.role, 'ADMIN'))).orderBy(desc(users.createdAt));
+    const allUsers = await db.select().from(users).orderBy(desc(users.createdAt));
     
     res.json({ status: 'success', data: allUsers });
   } catch (error) {
