@@ -16,6 +16,10 @@ DO $$ BEGIN
   CREATE TYPE quiz_question_type AS ENUM ('SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'SHORT_TEXT');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
+DO $$ BEGIN
+  CREATE TYPE assignment_question_type AS ENUM ('TEXT', 'PDF');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
 -- Tables
 
 CREATE TABLE IF NOT EXISTS departments (
@@ -60,14 +64,15 @@ CREATE TABLE IF NOT EXISTS users (
   full_name TEXT NOT NULL,
   is_active BOOLEAN NOT NULL DEFAULT true,
   -- Teacher-only fields
-  department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
-  position_id UUID REFERENCES positions(id) ON DELETE SET NULL,
+  department_id UUID REFERENCES departments(id) ON DELETE CASCADE,
+  position_id UUID REFERENCES positions(id) ON DELETE CASCADE,
   -- Student-only fields
-  major_id UUID REFERENCES majors(id) ON DELETE SET NULL,
-  academic_year_id UUID REFERENCES academic_years(id) ON DELETE SET NULL,
+  major_id UUID REFERENCES majors(id) ON DELETE CASCADE,
+  academic_year_id UUID REFERENCES academic_years(id) ON DELETE CASCADE,
   student_number TEXT UNIQUE,
   -- Auth system fields
   last_login_at TIMESTAMPTZ,
+  access_token TEXT,
   password_reset_token TEXT,
   password_reset_expires_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -79,7 +84,7 @@ CREATE TABLE IF NOT EXISTS courses (
   code TEXT NOT NULL, -- e.g., CS101
   title TEXT NOT NULL,
   description TEXT,
-  department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
+  department_id UUID NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (code)
@@ -150,7 +155,7 @@ CREATE TABLE IF NOT EXISTS announcements (
   scope_id UUID NOT NULL, -- offering_id for COURSE, academic_year_id for ACADEMIC
   title TEXT NOT NULL,
   content TEXT NOT NULL,
-  author_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  author_id UUID REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -162,7 +167,7 @@ CREATE TABLE IF NOT EXISTS materials (
   title TEXT NOT NULL,
   description TEXT,
   file_url TEXT,
-  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_by UUID REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -217,6 +222,9 @@ CREATE TABLE IF NOT EXISTS assignments (
   offering_id UUID NOT NULL REFERENCES course_offerings(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
+  question_type assignment_question_type NOT NULL DEFAULT 'TEXT',
+  question_text TEXT,
+  question_file_url TEXT,
   due_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -226,9 +234,8 @@ CREATE TABLE IF NOT EXISTS assignment_submissions (
   assignment_id UUID NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   submitted_at TIMESTAMPTZ,
-  file_url TEXT,
   text_answer TEXT,
-  ai_score NUMERIC(5,2), -- 0-100 percentage of AI-likeness
+  score NUMERIC,
   status submission_status NOT NULL DEFAULT 'PENDING',
   attempt_number INT NOT NULL DEFAULT 1,
   CONSTRAINT assignment_unique_attempt UNIQUE (assignment_id, student_id, attempt_number)

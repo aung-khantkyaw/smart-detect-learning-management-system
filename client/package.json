@@ -1,5 +1,5 @@
 {
-  "name": "lmsclient",
+  "name": "sdlms-client",
   "private": true,
   "version": "0.0.0",
   "type": "module",
