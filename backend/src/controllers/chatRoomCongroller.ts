@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { db } from '../db';
 import { academicChatRooms, chatMembers, chatMessages, courseChatRooms, users } from './../db/schema';
 import { and, eq, desc } from "drizzle-orm";
+import { getCache, setCache, delCache } from '../cache/redisClient';
 import path from 'path';
 import fs from 'fs';
 
@@ -21,10 +22,12 @@ export const getAllChatRooms = async (req: Request, res: Response) => {
 
 export const getAllAcademicChatRooms = async (req: Request, res: Response) => {
     try {
-        // Get all academic chat rooms
+        const cacheKey = 'chatrooms:academic:withMembers';
+        const cached = await getCache(cacheKey);
+        if (cached) {
+            return res.status(200).json({ status: "success", data: cached, cached: true });
+        }
         const chatRooms = await db.select().from(academicChatRooms);
-
-        // For each chat room, get its members
         const chatRoomsWithMembers = await Promise.all(
             chatRooms.map(async (room: any) => {
                 const members = await db.select().from(chatMembers).where(
@@ -36,8 +39,8 @@ export const getAllAcademicChatRooms = async (req: Request, res: Response) => {
                 return { ...room, members, membersCount: members.length };
             })
         );
-
-        return res.status(200).json({ status: "success", data: chatRoomsWithMembers })
+        await setCache(cacheKey, chatRoomsWithMembers, 120); // cache for 2 minutes
+        return res.status(200).json({ status: "success", data: chatRoomsWithMembers, cached: false })
     } catch (error) {
         console.error("Error fetching academic chat rooms:", error);
         return res.status(500).json({ status: "error", message: "Internal Server Error" });
@@ -62,26 +65,30 @@ export const getAcademicChatRoomById = async (req: Request, res: Response) => {
 };
 
 export const getAllCourseChatRooms = async (req: Request, res: Response) => {
-  try {
-    const chatRooms = await db.select().from(courseChatRooms);
-
-    const chatRoomsWithMembers = await Promise.all(
-            chatRooms.map(async (room: any) => {
-                const members = await db.select().from(chatMembers).where(
-                    and(
-                        eq(chatMembers.roomId, room.id),
-                        eq(chatMembers.roomType, 'COURSE')
-                    )
-                );
-                return { ...room, members, membersCount: members.length };
-            })
+    try {
+        const cacheKey = 'chatrooms:course:withMembers';
+        const cached = await getCache(cacheKey);
+        if (cached) {
+                return res.status(200).json({ status: "success", data: cached, cached: true })
+        }
+        const chatRooms = await db.select().from(courseChatRooms);
+        const chatRoomsWithMembers = await Promise.all(
+                chatRooms.map(async (room: any) => {
+                        const members = await db.select().from(chatMembers).where(
+                                and(
+                                        eq(chatMembers.roomId, room.id),
+                                        eq(chatMembers.roomType, 'COURSE')
+                                )
+                        );
+                        return { ...room, members, membersCount: members.length };
+                })
         );
-
-    return res.status(200).json({ status: "success", data: chatRoomsWithMembers })
-  } catch (error) {
-      console.error("Error fetching course chat rooms:", error);
-    return res.status(500).json({ status: "error", message: "Internal Server Error" });
-  }
+        await setCache(cacheKey, chatRoomsWithMembers, 120);
+        return res.status(200).json({ status: "success", data: chatRoomsWithMembers, cached: false })
+    } catch (error) {
+        console.error("Error fetching course chat rooms:", error);
+        return res.status(500).json({ status: "error", message: "Internal Server Error" });
+    }
 };
 
 export const getCourseChatRoomById = async (req: Request, res: Response) => {
@@ -167,6 +174,21 @@ export const getChatMessages = async (req: Request, res: Response) => {
             });
         }
 
+        const cacheKey = `chatmessages:${roomType}:${roomId}:limit=${limit}:offset=${offset}`;
+        const cached = await getCache(cacheKey);
+        if (cached) {
+            return res.status(200).json({ 
+                status: "success", 
+                data: cached,
+                count: cached.length,
+                cached: true,
+                pagination: {
+                    limit: Number(limit),
+                    offset: Number(offset)
+                }
+            });
+        }
+
         const messages = await db
             .select({
                 id: chatMessages.id,
@@ -189,10 +211,12 @@ export const getChatMessages = async (req: Request, res: Response) => {
             .limit(Number(limit))
             .offset(Number(offset));
 
+        await setCache(cacheKey, messages, 10); // very short TTL (chat is realtime)
         return res.status(200).json({ 
             status: "success", 
             data: messages,
             count: messages.length,
+            cached: false,
             pagination: {
                 limit: Number(limit),
                 offset: Number(offset)
@@ -249,7 +273,9 @@ export const sendMessage = async (req: Request, res: Response) => {
             global.socketService.broadcastMessage(roomId, roomType as 'ACADEMIC' | 'COURSE', messageForBroadcast);
         }
 
-        return res.status(201).json({ 
+    // Invalidate message caches for this room (pattern delete)
+    await delCache(`chatmessages:${roomType}:${roomId}:*`);
+    return res.status(201).json({ 
             status: "success", 
             data: newMessage[0],
             messageType: file ? 'file' : 'text',
@@ -305,8 +331,11 @@ export const deleteMessage = async (req: Request, res: Response) => {
             );
         }
 
-        // If message had a file, optionally delete the file from filesystem
-        // (You might want to implement file cleanup logic here)
+    // If message had a file, optionally delete the file from filesystem
+    // (You might want to implement file cleanup logic here)
+
+    // Invalidate cached messages for this room
+    await delCache(`chatmessages:${message.roomType}:${message.roomId}:*`);
 
         return res.status(200).json({ 
             status: "success", 
