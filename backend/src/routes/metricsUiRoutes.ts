@@ -5,6 +5,10 @@ import { getMetrics as getCacheMetrics } from '../cache/cacheMetrics';
 
 const router = Router();
 
+// Keep previous HTTP counter snapshot to compute per-key request rates (RPS)
+interface HttpSnapshot { ts: number; counts: Record<string, number>; }
+let prevHttpSnapshot: HttpSnapshot | null = null;
+
 interface HistogramBucket { le: string; value: number; }
 
 async function extractHistogramPercentiles(name: string) {
@@ -72,17 +76,40 @@ router.get('/json', async (_req, res) => {
     if (httpCounter) {
       httpCounter.values.forEach((row: any) => {
         if (row.metricName === 'http_requests_total') {
-          const key = `${row.labels.method}|${row.labels.status_code}`;
-            requests[key] = Number(row.value);
+          // Include route label so we can compute per-route rates client or server side
+          const key = `${row.labels.method}|${row.labels.route}|${row.labels.status_code}`;
+          requests[key] = Number(row.value);
         }
       });
     }
   const cache = getCacheMetrics();
+    // Compute per-key rates (RPS) since last snapshot
+    const now = Date.now();
+    const rates: Record<string, number> = {};
+    let totalRps = 0;
+    if (prevHttpSnapshot) {
+      const dt = (now - prevHttpSnapshot.ts) / 1000;
+      if (dt > 0) {
+        for (const k of Object.keys(requests)) {
+          const prev = prevHttpSnapshot.counts[k] || 0;
+          const cur = requests[k];
+            const diff = cur - prev;
+            if (diff >= 0) {
+              const r = diff / dt;
+              rates[k] = r;
+              totalRps += r;
+            }
+        }
+      }
+    }
+    prevHttpSnapshot = { ts: now, counts: requests };
     res.json({
       timestamp: Date.now(),
       http: {
         latency: httpHist,
-        requests
+        requests,
+        rates,
+        totalRps: Number(totalRps.toFixed(4))
       },
       cache,
       runtime: {
@@ -140,9 +167,17 @@ router.get('/dashboard.js', (_req, res) => {
         const label = new Date(data.timestamp).toLocaleTimeString();
         const lat = data.http.latency || {}; const reqs = data.http.requests || {}; const c = data.cache || {hits:0,misses:0}; const rt = data.runtime || {};
   if(lat.count){ const p50=lat.p50*1000, p95=lat.p95*1000, p99=lat.p99*1000; const ds=charts.latency.data.datasets; charts.latency.data.labels.push(label); ds[0].data.push(p50); ds[1].data.push(p95); ds[2].data.push(p99); if(ds[0].data.length>50){ ds.forEach(d=>d.data.shift()); charts.latency.data.labels.shift(); } charts.latency.update(); $('latencyKpi').textContent='P50 '+p50.toFixed(1)+' ms | P95 '+p95.toFixed(1)+' ms | P99 '+p99.toFixed(1)+' ms | Count '+lat.count; }
-        let total=0; Object.values(reqs).forEach(v=> total+=v); let rps=0; if(prevReq!=null && prevTs!=null){ const dt=(data.timestamp - prevTs)/1000; rps=(total - prevReq)/dt; } prevReq=total; prevTs=data.timestamp;
-        charts.rps.data.labels.push(label); charts.rps.data.datasets[0].data.push(rps); if(charts.rps.data.datasets[0].data.length>50){ charts.rps.data.datasets[0].data.shift(); charts.rps.data.labels.shift(); } charts.rps.update();
-  let errorCount=0; Object.keys(reqs).forEach(k=>{ if(/\|5/.test(k)) errorCount+=reqs[k]; }); const errRate= total? (errorCount/total*100):0; $('rpsKpi').textContent='RPS '+rps.toFixed(2)+' | Errors '+errorCount+' ('+errRate.toFixed(2)+'%)';
+        let total=0; Object.values(reqs).forEach(v=> total+=v); let rps=0; if(prevReq!=null && prevTs!=null){ const dt=(data.timestamp - prevTs)/1000; rps=(total - prevReq)/dt; } prevReq=total; prevTs=data.timestamp; const serverTotalRps = (data.http.totalRps!=null)? data.http.totalRps : rps; const effectiveRps = serverTotalRps || rps;
+        charts.rps.data.labels.push(label); charts.rps.data.datasets[0].data.push(effectiveRps); if(charts.rps.data.datasets[0].data.length>50){ charts.rps.data.datasets[0].data.shift(); charts.rps.data.labels.shift(); } charts.rps.update();
+  let errorCount=0; Object.keys(reqs).forEach(k=>{ if(/\|5\d\d$/.test(k)) errorCount+=reqs[k]; }); const errRate= total? (errorCount/total*100):0; $('rpsKpi').textContent='RPS '+effectiveRps.toFixed(2)+' | Errors '+errorCount+' ('+errRate.toFixed(2)+'%)';
+        // Per-route RPS table (use server-provided rates if present else compute diff client-side per key)
+        const rateMap = data.http.rates || {}; // keys method|route|status
+  const aggregate = {};
+        // If no server rates, compute naive client diff per key using reqs snapshot history we don't store (skip)
+        for(const key of Object.keys(rateMap)){
+          const parts = key.split('|'); if(parts.length<3) continue; const method=parts[0]; const route=parts[1]; const status=parts[2]; const r = rateMap[key]; const aggKey=method+' '+route; if(!aggregate[aggKey]) aggregate[aggKey]={ method, route, rps:0, errRps:0 }; aggregate[aggKey].rps += r; if(/^5/.test(status)) aggregate[aggKey].errRps += r; }
+        const rows = Object.values(aggregate).sort((a,b)=> b.rps - a.rps).slice(0,8).map(r=> '<tr><td>'+r.method+'</td><td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+r.route+'">'+r.route+'</td><td style="text-align:right">'+r.rps.toFixed(2)+'</td><td style="text-align:right">'+(r.rps? (r.errRps/r.rps*100).toFixed(1):'0.0')+'%</td></tr>').join('');
+        const bodyEl = $('routeRatesBody'); if(bodyEl){ bodyEl.innerHTML = rows || '<tr><td colspan="4" style="text-align:center;opacity:.5">No data</td></tr>'; }
   const hitPct=(c.hits+c.misses)? (c.hits/(c.hits+c.misses)*100):0; charts.cache.data.labels.push(label); charts.cache.data.datasets[0].data.push(hitPct); if(charts.cache.data.datasets[0].data.length>50){ charts.cache.data.datasets[0].data.shift(); charts.cache.data.labels.shift(); } charts.cache.update(); $('cacheKpi').textContent='Hits '+c.hits+' | Misses '+c.misses+' | Ratio '+hitPct.toFixed(1)+'%';
   const rssMb=(rt.rssBytes||0)/1048576, heapMb=(rt.heapUsedBytes||0)/1048576, lagMs=(rt.eventLoopLagP99||0)*1000; charts.mem.data.labels.push(label); charts.mem.data.datasets[0].data.push(rssMb); if(charts.mem.data.datasets[0].data.length>50){ charts.mem.data.datasets[0].data.shift(); charts.mem.data.labels.shift(); } charts.mem.update(); $('memKpi').textContent='RSS '+rssMb.toFixed(1)+' MB | Heap '+heapMb.toFixed(1)+' MB'; charts.lag.data.labels.push(label); charts.lag.data.datasets[0].data.push(lagMs); if(charts.lag.data.datasets[0].data.length>50){ charts.lag.data.datasets[0].data.shift(); charts.lag.data.labels.shift(); } charts.lag.update(); $('lagKpi').textContent='Lag P99 '+lagMs.toFixed(2)+' ms';
         failureStreak=0; footer('Updated '+new Date().toLocaleTimeString());
@@ -171,6 +206,10 @@ router.get('/ui', (_req, res) => {
  footer{margin-top:1rem;font-size:0.7rem;opacity:.6;text-align:center}
  a{color:#60a5fa;text-decoration:none}
  .error{color:#f87171}
+ table{width:100%;border-collapse:collapse;margin-top:.25rem}
+ th,td{padding:2px 4px;font-weight:400}
+ th{font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af}
+ tbody td{font-size:.65rem;border-top:1px solid #222}
  </style>
  <script src="/metrics/chart.js" defer></script>
  <script src="/metrics/dashboard.js" defer></script>
@@ -179,6 +218,7 @@ router.get('/ui', (_req, res) => {
 <div class="grid">
  <div class="card"><h3>Latency (ms)</h3><canvas id="latency"></canvas><div class="kpi" id="latencyKpi"></div></div>
  <div class="card"><h3>Request Rate</h3><canvas id="rps"></canvas><div class="kpi" id="rpsKpi"></div></div>
+ <div class="card"><h3>Per-Route RPS</h3><div class="kpi" style="overflow:auto;max-height:180px"><table id="routeRates"><thead><tr><th align="left">Method</th><th align="left">Route</th><th align="right">RPS</th><th align="right">Err%</th></tr></thead><tbody id="routeRatesBody"></tbody></table></div></div>
  <div class="card"><h3>Cache</h3><canvas id="cache"></canvas><div class="kpi" id="cacheKpi"></div></div>
  <div class="card"><h3>Memory (MB)</h3><canvas id="mem"></canvas><div class="kpi" id="memKpi"></div></div>
  <div class="card"><h3>Event Loop Lag P99 (ms)</h3><canvas id="lag"></canvas><div class="kpi" id="lagKpi"></div></div>
