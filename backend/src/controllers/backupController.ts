@@ -5,10 +5,16 @@ import { Request, Response } from 'express';
 
 export const getBackups = async (req: Request, res: Response) => {
   try {
-    const backupDirs = ['weekly', 'daily', 'manual'];
+    const allowedDirs = ['daily', 'weekly', 'monthly', 'manual'];
+    const filterType = (req.query.type as string | undefined)?.toLowerCase();
+    if (filterType && !allowedDirs.includes(filterType)) {
+      return res.status(400).json({ error: 'Invalid type filter. Use daily|weekly|monthly.' });
+    }
+
+    const dirsToScan = filterType ? [filterType] : allowedDirs;
     const backups: any[] = [];
 
-    for (const dir of backupDirs) {
+    for (const dir of dirsToScan) {
       const dirPath = path.join(__dirname, '../../../database/backups', dir);
       try {
         const files = await fs.readdir(dirPath);
@@ -18,7 +24,7 @@ export const getBackups = async (req: Request, res: Response) => {
             const stats = await fs.stat(filePath);
             backups.push({
               filename: file,
-              path: filePath,
+              sizeBytes: stats.size,
               size: `${(stats.size / 1024 / 1024).toFixed(2)} MB`,
               created: stats.mtime,
               type: dir
@@ -26,12 +32,27 @@ export const getBackups = async (req: Request, res: Response) => {
           }
         }
       } catch (err) {
-        console.log(`Directory ${dir} not found or empty`);
+        // Directory may not exist (e.g., no monthly backups yet)
+        continue;
       }
     }
 
     backups.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
-    res.json(backups);
+
+    // Summary counts and last backup timestamps per type
+    const summary: Record<string, number> = {};
+    const last: Record<string, string> = {};
+    for (const b of backups) {
+      summary[b.type] = (summary[b.type] || 0) + 1;
+      if (!last[b.type]) {
+        last[b.type] = new Date(b.created).toISOString();
+      }
+    }
+    if (backups.length > 0) {
+      last.overall = new Date(backups[0].created).toISOString();
+    }
+
+    res.json({ items: backups, summary, last });
   } catch (error) {
     console.error('Error listing backups:', error);
     res.status(500).json({ error: 'Failed to list backups' });
@@ -46,7 +67,7 @@ export const restoreBackup = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Filename is required' });
     }
 
-    const backupDirs = ['weekly', 'daily', 'manual'];
+  const backupDirs = ['daily', 'weekly', 'monthly', 'manual'];
     let backupPath: string | null = null;
 
     for (const dir of backupDirs) {

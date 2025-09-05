@@ -27,6 +27,10 @@ import assignmentRoutes from './routes/assignmentRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import aiFlagRoutes from './routes/aiFlagRoutes';
 import backupRoutes from './routes/backupRoutes';
+import cacheRoutes from './routes/cacheRoutes';
+import { warmInitialCaches } from './cache/cacheWarmer';
+import { prometheusMiddleware, metricsHandler } from './metrics/promMetrics';
+import metricsUiRoutes from './routes/metricsUiRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -67,6 +71,8 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+// Prometheus metrics middleware (must run after body parsing but before routes)
+app.use(prometheusMiddleware);
 app.use(express.urlencoded({ extended: true }));
 
 // Serve uploaded files statically
@@ -79,6 +85,15 @@ app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads'), {
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   }
 }));
+
+app.use((req,res,next)=>{
+  const start = performance.now();
+  res.on('finish', ()=>{
+    const ms = performance.now() - start;
+    console.log(`[REQUEST] ${req.method} ${req.originalUrl} - ${res.statusCode} - ${ms.toFixed(2)} ms`);
+  });
+  next();
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -101,11 +116,17 @@ app.use('/api/assignments', assignmentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/ai-flag', aiFlagRoutes);
 app.use('/api/admin', backupRoutes);
+app.use('/api/cache', cacheRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', NODE_ENV: process.env.NODE_ENV, timestamp: new Date().toISOString() });
 });
+
+// Prometheus metrics exposition (text/plain OpenMetrics format)
+app.get('/metrics', metricsHandler);
+// Human-friendly live dashboard & json
+app.use('/metrics', metricsUiRoutes);
 
 // Database connection test endpoint
 app.get('/api/test-db', async (req, res) => {
@@ -158,6 +179,8 @@ server.listen(PORT, '0.0.0.0', async () => {
   try {
     const { testConnection } = await import('./db');
     await testConnection();
+  // Warm caches without blocking readiness significantly
+  warmInitialCaches();
   } catch (error) {
     console.error('Failed to connect to database on startup:', error);
   }

@@ -27,7 +27,7 @@ export { client };
 export async function testConnection() {
   try {
     await client`SELECT 1`;
-    console.log('✅ Database connection successful');
+    console.log('✅ Database connected: ', connectionString.replace(/:[^:@]*@/, ':***@'));
     return true;
   } catch (error) {
     console.error('❌ Database connection failed:', error);
