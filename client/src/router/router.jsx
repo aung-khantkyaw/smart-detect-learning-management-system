@@ -32,6 +32,7 @@ import ChatRoomManagement from "../pages/Admin/pages/ChatRoomManagement.jsx";
 import DepartmentManagement from "../pages/Admin/pages/DepartmentManagement.jsx";
 import PositionManagement from "../pages/Admin/pages/PositionManagement.jsx";
 import MajorManagement from "../pages/Admin/pages/MajorManagement.jsx";
+import BackupRestore from "../pages/Admin/pages/BackupRestore.jsx";
 
 //teacher
 import TeacherDashboard from "../pages/Teacher/Dashboard.jsx";
@@ -110,6 +111,7 @@ const router = createBrowserRouter([
       { path: "positions", element: <PositionManagement /> },
       { path: "departments", element: <DepartmentManagement /> },
       { path: "majors", element: <MajorManagement /> },
+      { path: "backups-restore", element: <BackupRestore /> },
     ],
   },
 
