@@ -31,7 +31,7 @@ function resolveBaseUrl() {
     }
     return candidates[0];
   }
-  return "http://localhost:3000/api";
+  return "http://localhost:4000/api";
 }
 
 const BASE_URL = resolveBaseUrl();
@@ -112,7 +112,10 @@ export const api = {
 };
 
 // Multipart/form-data helpers (do not JSON.stringify and do not set Content-Type)
-async function requestForm(path, { method = "POST", headers = {}, formData } = {}) {
+async function requestForm(
+  path,
+  { method = "POST", headers = {}, formData } = {}
+) {
   const token = getToken();
   const url = `${BASE_URL}/${String(path).replace(/^\//, "")}`;
 
@@ -142,13 +145,17 @@ async function requestForm(path, { method = "POST", headers = {}, formData } = {
     try {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("user");
-    } catch {}
+    } catch {
+      // Ignore errors
+    }
     if (typeof window !== "undefined") window.location.href = "/login";
     throw new Error("Unauthorized");
   }
 
   if (!res.ok) {
-    const msg = (data && (data.message || data.error)) || `Request failed with status ${res.status}`;
+    const msg =
+      (data && (data.message || data.error)) ||
+      `Request failed with status ${res.status}`;
     throw new Error(msg);
   }
 
@@ -159,5 +166,7 @@ async function requestForm(path, { method = "POST", headers = {}, formData } = {
   return data;
 }
 
-api.postForm = (path, formData, options) => requestForm(path, { ...options, method: "POST", formData });
-api.putForm = (path, formData, options) => requestForm(path, { ...options, method: "PUT", formData });
+api.postForm = (path, formData, options) =>
+  requestForm(path, { ...options, method: "POST", formData });
+api.putForm = (path, formData, options) =>
+  requestForm(path, { ...options, method: "PUT", formData });

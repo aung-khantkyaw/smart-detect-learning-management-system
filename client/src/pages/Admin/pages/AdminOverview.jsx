@@ -431,7 +431,7 @@ export default function AdminOverview() {
           api.get("/quizzes").catch(() => []),
           api.get("/assignments").catch(() => []),
           api.get("/chat-rooms/academic").catch(() => []),
-          api.get("/chat-rooms/course").catch(() => []),
+          api.get("/chat-rooms/offeringCourse").catch(() => []),
         ]);
 
         if (!mounted) return;
