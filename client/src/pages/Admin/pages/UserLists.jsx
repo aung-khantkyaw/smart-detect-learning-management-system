@@ -205,12 +205,16 @@ export default function UserList() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold">
-                  👥 Users ({filteredUsers.length})
+                  Users
                 </h3>
-                <p className="text-blue-100 text-sm mt-1">Manage system users and permissions</p>
+                <p className="text-blue-100 text-sm mt-1">
+                  Manage system users and permissions
+                </p>
               </div>
               <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                <span className="text-sm font-medium">{filteredUsers.length} Total</span>
+                <span className="text-sm font-medium">
+                  Total: {filteredUsers.length} user{filteredUsers.length !== 1 ? "s" : ""}
+                </span>
               </div>
             </div>
           </div>
@@ -225,11 +229,15 @@ export default function UserList() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <div className={`h-14 w-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg ${
-                          u.role === 'ADMIN' ? 'bg-gradient-to-r from-red-500 to-red-600' :
-                          u.role === 'TEACHER' ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
-                          'bg-gradient-to-r from-green-500 to-green-600'
-                        }`}>
+                        <div
+                          className={`h-14 w-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg ${
+                            u.role === "ADMIN"
+                              ? "bg-gradient-to-r from-red-500 to-red-600"
+                              : u.role === "TEACHER"
+                              ? "bg-gradient-to-r from-blue-500 to-blue-600"
+                              : "bg-gradient-to-r from-green-500 to-green-600"
+                          }`}
+                        >
                           {u.fullName?.charAt(0) || "U"}
                         </div>
                         <div className="flex-1">
@@ -238,9 +246,15 @@ export default function UserList() {
                               {u.fullName}
                             </h4>
                             <span
-                              className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getRoleBadge(u.role)}`}
+                              className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getRoleBadge(
+                                u.role
+                              )}`}
                             >
-                              {u.role === 'ADMIN' ? '👑 Admin' : u.role === 'TEACHER' ? '👨🏫 Teacher' : '🎓 Student'}
+                              {u.role === "ADMIN"
+                                ? "Admin"
+                                : u.role === "TEACHER"
+                                ? "Teacher"
+                                : "Student"}
                             </span>
                             <span
                               className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
@@ -249,15 +263,13 @@ export default function UserList() {
                                   : "bg-red-100 text-red-800"
                               }`}
                             >
-                              {u.isActive ? "✅ Active" : "❌ Inactive"}
+                              {u.isActive ? "Active" : "Inactive"}
                             </span>
                           </div>
-                          <p className="text-gray-600 mt-1">
-                            📧 {u.email}
-                          </p>
-                          {u.role === 'STUDENT' && u.studentNumber && (
+                          <p className="text-gray-600 mt-1">{u.email}</p>
+                          {u.role === "STUDENT" && u.studentNumber && (
                             <p className="text-gray-500 text-sm mt-1">
-                              🆔 {u.studentNumber}
+                              {u.studentNumber}
                             </p>
                           )}
                         </div>
@@ -270,7 +282,7 @@ export default function UserList() {
                           className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
                           title="View Details"
                         >
-                          👁️ View
+                          View
                         </button>
                         <button
                           onClick={() => {
@@ -291,7 +303,7 @@ export default function UserList() {
                           className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
                           title="Edit User"
                         >
-                          ✏️ Edit
+                          Edit
                         </button>
                         <button
                           onClick={() => handleToggleActive(u)}
@@ -302,7 +314,7 @@ export default function UserList() {
                           }`}
                           title={u.isActive ? "Deactivate" : "Activate"}
                         >
-                          {u.isActive ? "🚫 Ban" : "✅ Unban"}
+                          {u.isActive ? "Ban" : "Unban"}
                         </button>
                         <button
                           onClick={() => {
@@ -313,7 +325,7 @@ export default function UserList() {
                           className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
                           title="Delete User"
                         >
-                          🗑️ Delete
+                          Delete
                         </button>
                       </div>
                     </div>
@@ -347,8 +359,6 @@ export default function UserList() {
             )}
           </div>
         </div>
-
-
 
         {/* User Details Modal */}
         {viewingUser && (
@@ -504,18 +514,24 @@ export default function UserList() {
                 <div className="space-y-6">
                   {/* Role Selection */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-800 mb-3">User Role</label>
+                    <label className="block text-sm font-semibold text-gray-800 mb-3">
+                      User Role
+                    </label>
                     <div className="grid grid-cols-3 gap-3">
-                      <label className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                        formData.role === "ADMIN" 
-                          ? "border-red-500 bg-red-50 text-red-700" 
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}>
+                      <label
+                        className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                          formData.role === "ADMIN"
+                            ? "border-red-500 bg-red-50 text-red-700"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
                         <input
                           type="radio"
                           value="ADMIN"
                           checked={formData.role === "ADMIN"}
-                          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, role: e.target.value })
+                          }
                           className="sr-only"
                         />
                         <div className="text-center w-full">
@@ -523,16 +539,20 @@ export default function UserList() {
                           <div className="font-medium text-sm">Admin</div>
                         </div>
                       </label>
-                      <label className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                        formData.role === "STUDENT" 
-                          ? "border-blue-500 bg-blue-50 text-blue-700" 
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}>
+                      <label
+                        className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                          formData.role === "STUDENT"
+                            ? "border-blue-500 bg-blue-50 text-blue-700"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
                         <input
                           type="radio"
                           value="STUDENT"
                           checked={formData.role === "STUDENT"}
-                          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, role: e.target.value })
+                          }
                           className="sr-only"
                         />
                         <div className="text-center w-full">
@@ -540,16 +560,20 @@ export default function UserList() {
                           <div className="font-medium text-sm">Student</div>
                         </div>
                       </label>
-                      <label className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                        formData.role === "TEACHER" 
-                          ? "border-blue-500 bg-blue-50 text-blue-700" 
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}>
+                      <label
+                        className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                          formData.role === "TEACHER"
+                            ? "border-blue-500 bg-blue-50 text-blue-700"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
                         <input
                           type="radio"
                           value="TEACHER"
                           checked={formData.role === "TEACHER"}
-                          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, role: e.target.value })
+                          }
                           className="sr-only"
                         />
                         <div className="text-center w-full">

@@ -108,10 +108,7 @@ export const deleteAcademicYear = async (req: Request, res: Response) => {
           .where(eq(academicChatRooms.academicYearId, id))
           .limit(1);
         if (hasChat.length > 0) {
-            return res.status(409).json({
-                status: 'error',
-                message: 'Cannot delete academic year: an academic chat room exists for this year. Remove it first.'
-            });
+            await db.delete(academicChatRooms).where(eq(academicChatRooms.academicYearId, id));
         }
 
         const deletedYear = await db.delete(academicYears)

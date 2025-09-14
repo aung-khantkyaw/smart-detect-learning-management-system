@@ -38,7 +38,7 @@ dotenv.config();
 const app = express();
 const server = createServer(app);
 // Allow multiple origins in CLIENT_URL, comma-separated
-const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+const allowedOrigins = (process.env.CLIENT_URL || "http://192.168.47.50:5173")
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);
