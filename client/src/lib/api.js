@@ -31,7 +31,7 @@ function resolveBaseUrl() {
     }
     return candidates[0];
   }
-  return "http://192.168.47.50:4000/api";
+  return "http://localhost:3000/api";
 }
 
 const BASE_URL = resolveBaseUrl();

@@ -4,7 +4,7 @@ Dockerized PostgreSQL with automated backups and an LMS schema supporting users,
 
 ## What you get
 
-- PostgreSQL 16 in Docker
+- PostgreSQL 17 alpha in Docker
 - Automatic daily backups at 03:00 UTC, rotated (days/weeks/months)
 - Schema initialization via scripts in `init/`
 - Restore helper script `scripts/restore_latest.sh`
