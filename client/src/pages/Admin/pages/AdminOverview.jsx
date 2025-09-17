@@ -158,7 +158,6 @@ function DualBarChart({
   );
 }
 
-// Wavy Line Chart (two series)
 function WavyLineChart({
   title,
   data,
@@ -170,11 +169,11 @@ function WavyLineChart({
   colorB,
 }) {
   const width = 460;
-  const height = 220;
-  const leftPad = 30;
-  const rightPad = 20;
-  const topPad = 20;
-  const bottomPad = 40;
+  const height = 240;
+  const leftPad = 40;
+  const rightPad = 30;
+  const topPad = 30;
+  const bottomPad = 50;
   const innerW = width - leftPad - rightPad;
   const innerH = height - topPad - bottomPad;
 
@@ -184,112 +183,254 @@ function WavyLineChart({
   );
 
   const pointsFor = (key) => {
-    const pts = data.map((d, i) => {
+    return data.map((d, i) => {
       const x = leftPad + (i / Math.max(1, data.length - 1)) * innerW;
       const y = topPad + innerH - ((d[key] || 0) / maxValue) * innerH;
-      return `${x},${y}`;
+      return { x, y, value: d[key] || 0 };
     });
-    return pts.join(" ");
   };
 
-  return (
-    <div className="bg-white rounded-3xl shadow-2xl p-6">
-      <h3 className="text-xl font-bold text-gray-800 mb-4">{title}</h3>
-      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
-        {[0, 25, 50, 75, 100].map((percent) => {
-          const y = topPad + innerH - (percent / 100) * innerH;
-          return (
-            <line
-              key={percent}
-              x1={leftPad}
-              y1={y}
-              x2={width - rightPad}
-              y2={y}
-              stroke="#e5e7eb"
-              strokeWidth="1"
-              opacity="0.6"
-            />
-          );
-        })}
+  const pathFor = (key) => {
+    const points = pointsFor(key);
+    if (points.length === 0) return "";
 
-        <polyline
-          points={pointsFor(seriesAKey)}
+    let path = `M ${points[0].x} ${points[0].y}`;
+
+    for (let i = 1; i < points.length; i++) {
+      const prevPoint = points[i - 1];
+      const currPoint = points[i];
+      const cp1x = prevPoint.x + (currPoint.x - prevPoint.x) * 0.4;
+      const cp1y = prevPoint.y;
+      const cp2x = currPoint.x - (currPoint.x - prevPoint.x) * 0.4;
+      const cp2y = currPoint.y;
+
+      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${currPoint.x} ${currPoint.y}`;
+    }
+
+    return path;
+  };
+
+  const gradientPathFor = (key) => {
+    const points = pointsFor(key);
+    if (points.length === 0) return "";
+
+    let path = pathFor(key);
+    // Add bottom line for gradient fill
+    const lastPoint = points[points.length - 1];
+    const firstPoint = points[0];
+    path += ` L ${lastPoint.x} ${topPad + innerH}`;
+    path += ` L ${firstPoint.x} ${topPad + innerH}`;
+    path += " Z";
+
+    return path;
+  };
+
+  const seriesAPoints = pointsFor(seriesAKey);
+  const seriesBPoints = pointsFor(seriesBKey);
+
+  return (
+    <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100">
+      <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">
+        {title}
+      </h3>
+
+      <svg
+        width="100%"
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        className="overflow-visible"
+      >
+        {/* Gradient Definitions */}
+        <defs>
+          <linearGradient
+            id={`gradientA-${title}`}
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="100%"
+          >
+            <stop offset="0%" style={{ stopColor: colorA, stopOpacity: 0.3 }} />
+            <stop
+              offset="100%"
+              style={{ stopColor: colorA, stopOpacity: 0.05 }}
+            />
+          </linearGradient>
+          <linearGradient
+            id={`gradientB-${title}`}
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="100%"
+          >
+            <stop offset="0%" style={{ stopColor: colorB, stopOpacity: 0.3 }} />
+            <stop
+              offset="100%"
+              style={{ stopColor: colorB, stopOpacity: 0.05 }}
+            />
+          </linearGradient>
+
+          {/* Drop shadow filter */}
+          <filter
+            id={`shadow-${title}`}
+            x="-20%"
+            y="-20%"
+            width="140%"
+            height="140%"
+          >
+            <feDropShadow
+              dx="0"
+              dy="2"
+              stdDeviation="3"
+              floodColor="#51abffff"
+              floodOpacity="0.1"
+            />
+          </filter>
+        </defs>
+
+        {/* Gradient fill areas */}
+        <path
+          d={gradientPathFor(seriesAKey)}
+          fill={`url(#gradientA-${title})`}
+        />
+        <path
+          d={gradientPathFor(seriesBKey)}
+          fill={`url(#gradientB-${title})`}
+        />
+
+        {/* Main curved lines */}
+        <path
+          d={pathFor(seriesAKey)}
           fill="none"
           stroke={colorA}
           strokeWidth="3"
-          className="drop-shadow-sm"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          filter={`url(#shadow-${title})`}
         />
-        <polyline
-          points={pointsFor(seriesBKey)}
+        <path
+          d={pathFor(seriesBKey)}
           fill="none"
           stroke={colorB}
           strokeWidth="3"
-          className="drop-shadow-sm"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          filter={`url(#shadow-${title})`}
         />
 
-        {["a", "b"].map((flag) =>
-          data.map((d, i) => {
-            const key = flag === "a" ? seriesAKey : seriesBKey;
-            const color = flag === "a" ? colorA : colorB;
-            const x = leftPad + (i / Math.max(1, data.length - 1)) * innerW;
-            const y = topPad + innerH - ((d[key] || 0) / maxValue) * innerH;
-            const val = d[key] || 0;
-            return (
-              <g key={`${flag}-${i}`}>
-                <circle
-                  cx={x}
-                  cy={y}
-                  r="3.5"
-                  fill={color}
-                  className="drop-shadow-sm"
+        {/* Data points with hover effect */}
+        {seriesAPoints.map((point, i) => (
+          <g key={`a-${i}`} className="cursor-pointer">
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r="6"
+              fill="white"
+              stroke={colorA}
+              strokeWidth="3"
+              className="drop-shadow-md hover:r-8 transition-all duration-200"
+            />
+            {point.value > 0 && (
+              <g>
+                <rect
+                  x={point.x - 15}
+                  y={point.y - 25}
+                  width="30"
+                  height="18"
+                  rx="9"
+                  fill={colorA}
+                  className="opacity-90"
                 />
-                {val > 0 && (
-                  <text
-                    x={x}
-                    y={y - 8}
-                    textAnchor="middle"
-                    className="fill-gray-700 text-[10px] font-semibold"
-                  >
-                    {val}
-                  </text>
-                )}
+                <text
+                  x={point.x}
+                  y={point.y - 12}
+                  textAnchor="middle"
+                  className="fill-white text-xs font-bold"
+                >
+                  {point.value}
+                </text>
               </g>
-            );
-          })
-        )}
+            )}
+          </g>
+        ))}
 
+        {seriesBPoints.map((point, i) => (
+          <g key={`b-${i}`} className="cursor-pointer">
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r="6"
+              fill="white"
+              stroke={colorB}
+              strokeWidth="3"
+              className="drop-shadow-md hover:r-8 transition-all duration-200"
+            />
+            {point.value > 0 && (
+              <g>
+                <rect
+                  x={point.x - 15}
+                  y={point.y - 25}
+                  width="30"
+                  height="18"
+                  rx="9"
+                  fill={colorB}
+                  className="opacity-90"
+                />
+                <text
+                  x={point.x}
+                  y={point.y - 12}
+                  textAnchor="middle"
+                  className="fill-white text-xs font-bold"
+                >
+                  {point.value}
+                </text>
+              </g>
+            )}
+          </g>
+        ))}
+
+        {/* X-axis labels */}
         {data.map((d, i) => {
           const x = leftPad + (i / Math.max(1, data.length - 1)) * innerW;
           return (
-            <text
-              key={i}
-              x={x}
-              y={height - 12}
-              textAnchor="middle"
-              className="fill-gray-600 text-xs font-medium"
-            >
-              {d.month}
-            </text>
+            <g key={i}>
+              <line
+                x1={x}
+                y1={topPad + innerH}
+                x2={x}
+                y2={topPad + innerH + 5}
+                stroke="#cbd5e1"
+                strokeWidth="1"
+              />
+              <text
+                x={x}
+                y={height - 20}
+                textAnchor="middle"
+                className="fill-gray-600 text-sm font-semibold"
+              >
+                {d.month}
+              </text>
+            </g>
           );
         })}
       </svg>
 
-      <div className="flex justify-center gap-8 mt-2">
-        <div className="flex items-center">
-          <span
-            className="w-3.5 h-3.5 rounded mr-2"
-            style={{ background: colorA }}
-          ></span>
-          <span className="text-sm font-semibold text-gray-700">
+      {/* Enhanced Legend */}
+      <div className="flex justify-center gap-8 mt-4">
+        <div className="flex items-center px-4 py-2 bg-gray-50 rounded-full">
+          <div
+            className="w-4 h-4 rounded-full mr-3 border-2 border-white shadow-md"
+            style={{ backgroundColor: colorA }}
+          ></div>
+          <span className="text-sm font-bold text-gray-700">
             {seriesALabel}
           </span>
         </div>
-        <div className="flex items-center">
-          <span
-            className="w-3.5 h-3.5 rounded mr-2"
-            style={{ background: colorB }}
-          ></span>
-          <span className="text-sm font-semibold text-gray-700">
+        <div className="flex items-center px-4 py-2 bg-gray-50 rounded-full">
+          <div
+            className="w-4 h-4 rounded-full mr-3 border-2 border-white shadow-md"
+            style={{ backgroundColor: colorB }}
+          ></div>
+          <span className="text-sm font-bold text-gray-700">
             {seriesBLabel}
           </span>
         </div>
