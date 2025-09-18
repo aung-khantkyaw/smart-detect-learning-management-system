@@ -62,7 +62,7 @@ smart-detect-learning-management-system/
 	# Install dependencies
 	npm install
 	# Start the frontend
-	npm start
+	npm run dev
 	```
 
 ## Database Management
